@@ -6,6 +6,7 @@ useDefault = true
 [[allowlists]]
 description = "Documented fixture aliases and redacted placeholders"
 paths = [
+  '''^\.git/''',
   '''^\.budobugs/''',
   '''^\.venv/''',
   '''^node_modules/''',

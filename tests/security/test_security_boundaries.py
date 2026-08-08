@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import subprocess
+import tomllib
 from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
+from scripts import secret_scan
 
 from budobugs.browser.session import BrowserSessionManager
 from budobugs.core.policy import target_allowed
@@ -11,6 +14,28 @@ from budobugs.labs.manager import LabManager
 from budobugs.models import Engagement, EngagementMode, PhaseName, Target
 from budobugs.orchestration.engine import HuntEngine
 from budobugs.proxy.base import require_local_control_plane
+
+
+def test_gitleaks_source_scan_excludes_vcs_metadata(repository_root: Path) -> None:
+    with (repository_root / ".gitleaks.toml").open("rb") as handle:
+        config = tomllib.load(handle)
+
+    excluded_paths = config["allowlists"][0]["paths"]
+    assert r"^\.git/" in excluded_paths
+
+
+def test_secret_scan_passes_a_repository_relative_source(monkeypatch: pytest.MonkeyPatch) -> None:
+    observed: list[str] = []
+
+    def run(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        observed.extend(command)
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(secret_scan.shutil, "which", lambda _name: "gitleaks")
+    monkeypatch.setattr(secret_scan.subprocess, "run", run)
+
+    assert secret_scan.main(["--path", "."]) == 0
+    assert observed[observed.index("--source") + 1] == "."
 
 
 def test_network_scope_is_origin_bound_and_rejects_url_credentials(lab_engagement: Engagement) -> None:

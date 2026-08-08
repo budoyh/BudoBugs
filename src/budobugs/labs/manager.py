@@ -180,7 +180,7 @@ class LabManager:
         if current.running:
             return current
         log = self.log_file.open("ab")
-        creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+        creationflags: int = getattr(subprocess, "CREATE_NO_WINDOW", 0) if sys.platform == "win32" else 0
         process = subprocess.Popen(
             [
                 sys.executable,
@@ -280,10 +280,7 @@ class LabManager:
         state = self._read_state()
         if not str(state.get("backend", "")).startswith("docker") or not self._fixture_health():
             raise RuntimeError("the Docker lab must be running before a ZAP automation scan")
-        output_dir = self.root / ".budobugs" / "zap"
-        output_dir.mkdir(parents=True, exist_ok=True)
-        report_path = output_dir / "zap-report.json"
-        report_path.unlink(missing_ok=True)
+        report_path = self._prepare_zap_output()
         result = subprocess.run(
             self._compose_command(
                 "--profile",
@@ -326,8 +323,21 @@ class LabManager:
             "alerts": alert_count,
             "exit_code": result.returncode,
         }
-        atomic_write_json(output_dir / "automation-receipt.json", receipt)
+        atomic_write_json(report_path.parent / "automation-receipt.json", receipt)
         return receipt
+
+    def _prepare_zap_output(self) -> Path:
+        """Prepare the host/container report handoff without changing repository permissions."""
+
+        output_dir = self.root / ".budobugs" / "zap"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        if os.name == "posix":
+            # The pinned ZAP image runs as a different non-root UID. The sticky bit
+            # confines this world-writable handoff to its ignored runtime directory.
+            output_dir.chmod(0o1777)
+        report_path = output_dir / "zap-report.json"
+        report_path.unlink(missing_ok=True)
+        return report_path
 
     def _read_state(self) -> dict[str, object]:
         try:

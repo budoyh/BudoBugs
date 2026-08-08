@@ -19,6 +19,7 @@ def test_docker_fixture_and_zap_automation_are_real(repository_root: Path, tmp_p
     if not LabManager.docker_ready():
         pytest.skip("NEEDS_RUNTIME: Docker daemon is unavailable")
     manager = LabManager(repository_root, tmp_path / "runtime")
+    report = manager._prepare_zap_output()
     config = subprocess.run(manager._compose_command("config"), capture_output=True, timeout=60, check=False)
     assert config.returncode == 0, manager._decode(config.stderr)
     start = subprocess.run(
@@ -53,7 +54,6 @@ def test_docker_fixture_and_zap_automation_are_real(repository_root: Path, tmp_p
             check=False,
         )
         assert scan.returncode == 0, manager._decode(scan.stderr or scan.stdout)
-        report = repository_root / ".budobugs" / "zap" / "zap-report.json"
         assert report.is_file()
         assert '"site"' in report.read_text(encoding="utf-8")
     finally:

@@ -25,6 +25,8 @@ jobs:
     steps:
       - name: Checkout v7.0.1
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - name: Install uv with setup-uv v9.0.0
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
         with:
@@ -70,6 +72,8 @@ jobs:
     steps:
       - name: Checkout v7.0.1
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - name: Install uv with setup-uv v9.0.0
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
         with:
@@ -98,6 +102,8 @@ jobs:
     steps:
       - name: Checkout v7.0.1
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - name: Install uv with setup-uv v9.0.0
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
         with:
@@ -115,6 +121,8 @@ jobs:
     steps:
       - name: Checkout v7.0.1
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - name: Install uv with setup-uv v9.0.0
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
         with:
@@ -132,6 +140,8 @@ jobs:
     steps:
       - name: Checkout v7.0.1
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - name: Install uv with setup-uv v9.0.0
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
         with:
@@ -155,6 +165,8 @@ jobs:
     steps:
       - name: Checkout v7.0.1
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - name: Install uv with setup-uv v9.0.0
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
         with:
@@ -175,6 +187,8 @@ jobs:
     steps:
       - name: Checkout v7.0.1
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - name: Install uv with setup-uv v9.0.0
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
         with:
@@ -194,6 +208,8 @@ jobs:
     steps:
       - name: Checkout v7.0.1
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - name: Install uv with setup-uv v9.0.0
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
         with:
@@ -238,6 +254,8 @@ jobs:
     steps:
       - name: Checkout v7.0.1
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - run: docker build --tag budobugs/fixture:ci --file docker/labs/fixture/Dockerfile .
       - name: Trivy v0.73.0 fixture image scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
@@ -253,6 +271,8 @@ jobs:
     steps:
       - name: Checkout v7.0.1
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - name: Install uv with setup-uv v9.0.0
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
         with:
@@ -271,6 +291,8 @@ jobs:
     steps:
       - name: Checkout v7.0.1
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - name: Install uv with setup-uv v9.0.0
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
         with:

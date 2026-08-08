@@ -6,16 +6,17 @@ import argparse
 import shutil
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def main() -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--path", default=".", help="repository-contained directory to scan")
     parser.add_argument("--config", default=".gitleaks.toml", help="repository-contained Gitleaks config")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     source = (ROOT / args.path).resolve()
     config = (ROOT / args.config).resolve()
@@ -31,8 +32,9 @@ def main() -> int:
         print("FAIL: gitleaks is required; secret scanning was not performed", file=sys.stderr)
         return 2
 
+    relative_source = source.relative_to(ROOT).as_posix() or "."
     result = subprocess.run(
-        [executable, "detect", "--source", str(source), "--no-git", "--redact", "--config", str(config)],
+        [executable, "detect", "--source", relative_source, "--no-git", "--redact", "--config", str(config)],
         cwd=ROOT,
         check=False,
     )

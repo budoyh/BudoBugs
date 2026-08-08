@@ -11,9 +11,9 @@
     "grype docker-archive:.budobugs/fixture-release.tar --vex release/scans/fixture.openvex.json --fail-on high --output json --file release/scans/grype-fixture.json",
     "python scripts/generate_license_inventory.py"
   ],
-  "generated_at": "2026-08-08T18:36:33.843364+00:00",
+  "generated_at": "2026-08-08T18:55:52.183346+00:00",
   "materials": {
-    ".gitleaks.toml": "fb0482c52d09a9590b8cd8599c026219493143b2fc8e37880f95ae0086907c82",
+    ".gitleaks.toml": "b785506bb9ae0a1638ced007214eb1349fa58ef40475df4239b95344bc7d2ad2",
     "config/semgrep.yml": "0e339e360c8606f8843ead81050da90697813db7cea723b658ac851d78731d0f",
     "docker/compose.yaml": "32a06a46ab8e8bce4d5cae5e6361095df00bf918926466c8f4a1776490e6a364",
     "docker/labs/fixture/Dockerfile": "3904daf03c170cf9bad2bef59610c57c7772c8729808d65f1faad9a178df6f42",
