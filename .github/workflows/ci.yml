@@ -226,7 +226,7 @@ jobs:
       - name: Trivy v0.73.0 filesystem scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
-          version: 0.73.0
+          version: v0.73.0
           scan-type: fs
           scan-ref: .
           scanners: vuln,secret,misconfig
@@ -242,7 +242,7 @@ jobs:
       - name: Trivy v0.73.0 fixture image scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
-          version: 0.73.0
+          version: v0.73.0
           image-ref: budobugs/fixture:ci
           format: table
           exit-code: "1"
