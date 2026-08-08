@@ -1,0 +1,8 @@
+{
+  "finding_id": "finding-public-control",
+  "pack_path": "findings/finding-public-control",
+  "expected_output": {
+    "verdict": "KILL",
+    "reason": "intentionally public"
+  }
+}

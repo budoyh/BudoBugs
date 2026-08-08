@@ -1,0 +1,17 @@
+{
+  "engagement_id": "lab-example",
+  "hypothesis": {
+    "class": "IDOR/BOLA"
+  },
+  "validation_plan": {
+    "change_only": "object_id",
+    "repeat": 2
+  },
+  "expected_output": {
+    "controls": [
+      "normal",
+      "negative",
+      "refutation"
+    ]
+  }
+}

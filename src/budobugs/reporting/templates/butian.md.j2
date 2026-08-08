@@ -1,0 +1,110 @@
+# {{ finding.title }}
+
+攻击者在具备{{ finding.attacker_prerequisites | join('、') }}后，能够{{ finding.capability_delta }}。
+
+## 1. 厂商与授权目标
+
+- 报告模板：{{ platform }}
+- 厂商：{{ vendor }}
+- SRC/任务平台：{{ engagement_platform }}
+- 授权目标：`{{ finding.affected_asset }}`
+- 影响功能：{{ finding.affected_feature }}
+- 漏洞类型：{{ finding.vulnerability_class }}
+
+## 2. 测试前置条件与账号
+
+{% for item in finding.attacker_prerequisites %}
+- {{ item }}
+{% endfor %}
+
+测试证据仅记录账号别名，不包含密码、Cookie 或 Token 明文。
+
+## 3. 安全不变量与漏洞原理
+
+**安全不变量**：{{ finding.security_invariant }}
+
+- 受保护资产：{{ finding.protected_asset }}
+- 信任边界：{{ finding.trust_boundary }}
+- 权限执行点：{{ finding.enforcement_point }}
+- 预期行为：{{ finding.expected_behavior }}
+- 实际行为：{{ finding.observed_behavior }}
+
+## 4. 完整复现步骤
+
+{% for step in finding.reproduction_steps %}
+{{ loop.index }}. {{ step }}
+{% endfor %}
+
+## 5. 原始请求与响应证据
+
+### 请求
+{% for item in request_evidence %}
+
+`{{ item.reference }}`
+
+```http
+{{ item.content }}
+```
+{% endfor %}
+
+### 响应
+{% for item in response_evidence %}
+
+`{{ item.reference }}`
+
+```http
+{{ item.content }}
+```
+{% endfor %}
+
+## 6. 正常对照与反证
+
+- 正常对照：{{ finding.normal_control }}
+- 负对照：{{ finding.negative_control }}
+- 最强正常解释：{{ finding.strongest_benign_explanation }}
+{% for attempt in finding.refutation_attempts %}
+- 反证尝试：{{ attempt }}
+{% endfor %}
+
+## 7. 攻击者新增能力与真实影响
+
+- 测试前能力：{{ finding.capability_before }}
+- 测试后能力：{{ finding.capability_after }}
+- 能力增量：{{ finding.capability_delta }}
+- 真实影响：{{ finding.impact }}
+- 保守影响范围：{{ finding.data_exposure_scope }}
+- 数据/状态变更：{{ finding.mutation_scope }}
+- 清理情况：{{ finding.cleanup_status }}
+
+## 8. 严重程度
+
+- 严重程度：{{ finding.severity }}
+- CVSS：{{ finding.cvss or '由人工结合平台口径复核' }}
+- 证据置信度：{{ finding.confidence }}
+- 重复风险：{{ finding.duplicate_risk }}
+
+## 9. 修复建议
+
+在服务端权限执行点基于当前认证主体、租户和对象所有权执行逐对象授权；不要仅依赖前端隐藏、对象 ID 不可猜测或状态码。为跨账号、跨角色、跨租户和撤销后的访问增加回归测试。
+
+## 10. 关键截图
+
+{% if screenshots %}
+{% for screenshot in screenshots %}
+- `{{ screenshot }}`
+{% endfor %}
+{% else %}
+- 本 finding 未声明关键截图；以请求、响应和浏览器 trace 为准。
+{% endif %}
+
+## 11. 人工复核清单
+
+- 核对授权目标、测试账号别名和时间范围。
+- 按顺序复制并执行复现请求，确认正常与负对照仍成立。
+- 核对能力增量、影响范围、CVSS 与平台口径。
+- 再次确认 Cookie、Token、个人数据和第三方数据均已最小化或脱敏。
+- 只由人工完成最终提交。
+
+## 12. 事实边界
+
+本报告只陈述 evidence pack 中可复现、通过独立 critic 的事实。未验证的更大数据范围、其他角色或其他端点不在影响结论中。

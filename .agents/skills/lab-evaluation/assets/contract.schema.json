@@ -1,0 +1,25 @@
+{
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:lab-evaluation:input",
+    "type": "object",
+    "required": ["engagement_id", "target"],
+    "properties": {
+      "engagement_id": {"type": "string", "minLength": 3},
+      "target": {"type": "string", "pattern": "^https?://(127\\.0\\.0\\.1|localhost)(:[0-9]+)?(?:/|$)"}
+    },
+    "additionalProperties": false
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:lab-evaluation:output",
+    "type": "object",
+    "required": ["external_network_calls", "confirmed", "killed"],
+    "properties": {
+      "external_network_calls": {"const": 0},
+      "confirmed": {"type": "integer", "minimum": 1},
+      "killed": {"type": "integer", "minimum": 1}
+    },
+    "additionalProperties": false
+  }
+}

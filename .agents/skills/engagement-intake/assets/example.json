@@ -1,0 +1,11 @@
+{
+  "engagement_id": "lab-example",
+  "mode": "lab",
+  "root_targets": [
+    "http://127.0.0.1:8765"
+  ],
+  "authorization_attestation": "I own and authorize this isolated local fixture.",
+  "expected_output": {
+    "authorization_status": "draft"
+  }
+}

@@ -1,0 +1,22 @@
+rules:
+  - id: budobugs-python-subprocess-shell
+    languages: [python]
+    severity: ERROR
+    message: shell=True crosses the command execution boundary; use an argument vector.
+    patterns:
+      - pattern: subprocess.$FUNC(..., shell=True, ...)
+  - id: budobugs-python-insecure-tls
+    languages: [python]
+    severity: WARNING
+    message: TLS verification is disabled.
+    patterns:
+      - pattern-either:
+          - pattern: httpx.$CLIENT(..., verify=False, ...)
+          - pattern: requests.$METHOD(..., verify=False, ...)
+  - id: budobugs-javascript-child-process-shell
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: String shell execution is not allowed at the tool boundary.
+    pattern-either:
+      - pattern: child_process.exec(...)
+      - pattern: child_process.execSync(...)

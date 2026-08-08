@@ -1,0 +1,33 @@
+{
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:traffic-object-model:input",
+    "type": "object",
+    "required": ["engagement_id", "exchanges"],
+    "properties": {
+      "engagement_id": {"type": "string", "minLength": 3},
+      "exchanges": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["method", "url", "status"],
+          "properties": {
+            "method": {"type": "string"},
+            "url": {"type": "string"},
+            "status": {"type": "integer", "minimum": 100, "maximum": 599}
+          },
+          "additionalProperties": true
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:traffic-object-model:output",
+    "type": "object",
+    "required": ["objects"],
+    "properties": {"objects": {"type": "array", "items": {"type": "object"}}},
+    "additionalProperties": false
+  }
+}

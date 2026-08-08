@@ -1,0 +1,8 @@
+mode: lab
+allowed_mutation_levels: [none, low, medium, high]
+allowed_resource_risks: [low, medium, high]
+max_concurrency: 8
+max_requests_per_second: 20
+allow_external_oob: false
+allow_state_change: true
+network_boundary: loopback_private_or_docker_internal

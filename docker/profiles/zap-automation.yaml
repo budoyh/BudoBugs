@@ -1,0 +1,24 @@
+env:
+  contexts:
+    - name: budobugs-local-lab
+      urls: ["http://fixture:8765"]
+      includePaths: ["http://fixture:8765/.*"]
+      excludePaths: []
+jobs:
+  - type: passiveScan-config
+    parameters:
+      maxAlertsPerRule: 10
+      scanOnlyInScope: true
+  - type: spider
+    parameters:
+      context: budobugs-local-lab
+      url: "http://fixture:8765"
+      maxDuration: 2
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 5
+  - type: report
+    parameters:
+      template: traditional-json
+      reportDir: /zap/wrk
+      reportFile: zap-report.json

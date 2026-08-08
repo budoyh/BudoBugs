@@ -1,0 +1,33 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 7c55798a78262d14b2074abf623d8a992ebb70d4
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e
+    hooks:
+      - id: gitleaks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=2048]
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: local
+    hooks:
+      - id: verify-skills
+        name: verify repository skills
+        entry: uv run python scripts/verify_skills.py
+        language: system
+        pass_filenames: false
+      - id: verify-release-inputs
+        name: verify release inputs
+        entry: uv run python scripts/verify_release.py --source
+        language: system
+        pass_filenames: false

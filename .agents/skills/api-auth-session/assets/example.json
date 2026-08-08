@@ -1,0 +1,14 @@
+{
+  "engagement_id": "lab-example",
+  "protocol": "REST",
+  "state_observations": [
+    "anonymous=401",
+    "fixture-bob=200"
+  ],
+  "expected_output": {
+    "states": [
+      "anonymous",
+      "authenticated"
+    ]
+  }
+}

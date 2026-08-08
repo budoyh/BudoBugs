@@ -1,0 +1,5 @@
+# Agent Skills discovery metadata.
+interface:
+  display_name: "source-secret-supply-chain"
+  short_description: "BudoBugs authorized security workflow"
+  default_prompt: "Use $source-secret-supply-chain for this authorized BudoBugs task."

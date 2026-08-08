@@ -1,0 +1,5 @@
+# Agent Skills discovery metadata.
+interface:
+  display_name: "authz-business-logic"
+  short_description: "BudoBugs authorized security workflow"
+  default_prompt: "Use $authz-business-logic for this authorized BudoBugs task."

@@ -1,0 +1,5 @@
+# Agent Skills discovery metadata.
+interface:
+  display_name: "api-auth-session"
+  short_description: "BudoBugs authorized security workflow"
+  default_prompt: "Use $api-auth-session for this authorized BudoBugs task."

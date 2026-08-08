@@ -1,0 +1,49 @@
+{
+  "commands": [
+    "syft scan dir:. --exclude ./.git/** --exclude ./.budobugs/** --exclude ./.venv/** --exclude ./node_modules/** --exclude ./dist/** --exclude ./engagements/** --exclude ./findings/** --exclude ./runs/** --exclude ./release/** --source-name budobugs-source --source-version 2026.8.8 --output cyclonedx-json=release/sbom/source.cdx.json",
+    "gitleaks detect --source . --no-git --redact --config .gitleaks.toml --report-format json --report-path release/scans/gitleaks.json",
+    "semgrep scan --config config/semgrep.yml --json --output release/scans/semgrep.json --metrics off .",
+    "osv-scanner scan source --lockfile uv.lock --lockfile pnpm-lock.yaml --format json --output-file release/scans/osv.json",
+    "trivy fs --format json --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --skip-dirs .budobugs --skip-dirs .venv --skip-dirs node_modules .",
+    "trivy image --input .budobugs/fixture-release.tar --format json --scanners vuln,secret,misconfig --severity HIGH,CRITICAL",
+    "grype docker-archive:.budobugs/fixture-release.tar --output json --file release/scans/grype-fixture-raw.json",
+    "python scripts/generate_fixture_vex.py",
+    "grype docker-archive:.budobugs/fixture-release.tar --vex release/scans/fixture.openvex.json --fail-on high --output json --file release/scans/grype-fixture.json",
+    "python scripts/generate_license_inventory.py"
+  ],
+  "generated_at": "2026-08-08T18:36:33.843364+00:00",
+  "materials": {
+    ".gitleaks.toml": "fb0482c52d09a9590b8cd8599c026219493143b2fc8e37880f95ae0086907c82",
+    "config/semgrep.yml": "0e339e360c8606f8843ead81050da90697813db7cea723b658ac851d78731d0f",
+    "docker/compose.yaml": "32a06a46ab8e8bce4d5cae5e6361095df00bf918926466c8f4a1776490e6a364",
+    "docker/labs/fixture/Dockerfile": "3904daf03c170cf9bad2bef59610c57c7772c8729808d65f1faad9a178df6f42",
+    "docker/labs/fixture/requirements.lock": "c1c801ba947231208ee06ab5b283793a4395c3638cab7be0d0e3ffa00395c0c9",
+    "docker/labs/loopback-proxy/Dockerfile": "1ceef5d96a4a7069985fff450e934c11b857743ae657066faefa03bc42d3fc86",
+    "pnpm-lock.yaml": "5d114fe32e12d56685a5c2d49a6ff39c92b8b959a4e52f78b357b3f044b2aa99",
+    "release/licenses/node-production.json": "54893e268cf1e7f2697aca768f469a521ff3f4525ea7c1c3094c9aeddcdb6b3a",
+    "release/licenses/python-production.json": "ea66aa31cea0b032aad76c08dc0dc2bb26366ad9ae0533c0fe272933431c8c79",
+    "release/licenses/summary.json": "78647cae4805f03977e8410c8cda0e349ff777e84c580172841e1a353fc6f7da",
+    "release/sbom/source.cdx.json": "688d8aa8a1e7ce941aa70c583a69b5de37597951f95698b686256b605b8dbe8d",
+    "release/scans/fixture-vex-review.json": "ecd47de9df21adedff07c8bccf6944612dd17c69adb9e035cf55dd01b7062c94",
+    "release/scans/fixture.openvex.json": "313fdcfba4531b1063df0f284455a54a879d215f1a0b71ce4e56b0a9fff5d9ce",
+    "release/scans/gitleaks.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "release/scans/grype-fixture-raw.json": "9a3801f9a8faea398755bff5d00b5e9b65cdeaca4be9060b8bc1fdc7b618835d",
+    "release/scans/grype-fixture.json": "5076e64001ab4a363e571a17660dc6e5eb277d423a154346bbcf4075b513c560",
+    "release/scans/osv.json": "54345d5194d238b6017d0f3181f392109ce35023cc6b4bdfa8c134943dcb578e",
+    "release/scans/semgrep.json": "d6ed652fd7add9e140f22141a5533db780c2bec68832b73fe79cb9e1749427eb",
+    "release/scans/trivy-fixture.json": "07d1a88abeb05f9779b01c75b000a22e5cbd56b417bcdd996eb79e65996549ce",
+    "release/scans/trivy-fs.json": "5d4e75ff13ad92f73f5cd7906c0d6abbc85bd8cae27763d91d6b0f35dae0965a",
+    "release/validation/hexstrike-localhost.json": "4f838e61118e90322651489460406a03da44ed8ddcdb02963572536e6180cf72",
+    "tools/lock/tool-lock.yaml": "9a71d3012a9b09f5da6aafb0e49875c5f8a4a7c2ff63718eabc7e2be295512ab",
+    "uv.lock": "d451f476567fc0e457edb2cd13a154fb642c6117798ae5b5d62b7a63b1ba3c09"
+  },
+  "platform": {
+    "machine": "AMD64",
+    "python": "3.12.13",
+    "release": "11",
+    "system": "Windows"
+  },
+  "project": "BudoBugs",
+  "schema_version": 1,
+  "version": "2026.8.8"
+}

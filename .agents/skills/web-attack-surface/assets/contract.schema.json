@@ -1,0 +1,21 @@
+{
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:web-attack-surface:input",
+    "type": "object",
+    "required": ["engagement_id", "exchange_refs"],
+    "properties": {
+      "engagement_id": {"type": "string", "minLength": 3},
+      "exchange_refs": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+    },
+    "additionalProperties": false
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:web-attack-surface:output",
+    "type": "object",
+    "required": ["endpoint_families"],
+    "properties": {"endpoint_families": {"type": "array", "items": {"type": "string"}}},
+    "additionalProperties": false
+  }
+}

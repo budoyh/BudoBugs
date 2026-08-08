@@ -1,0 +1,9 @@
+{
+  "engagement_id": "lab-example",
+  "target": "http://127.0.0.1:8765",
+  "expected_output": {
+    "external_network_calls": 0,
+    "confirmed": 1,
+    "killed": 1
+  }
+}

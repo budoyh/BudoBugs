@@ -1,0 +1,23 @@
+{
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:engagement-intake:input",
+    "type": "object",
+    "required": ["engagement_id", "mode", "root_targets", "authorization_attestation"],
+    "properties": {
+      "engagement_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$"},
+      "mode": {"enum": ["lab", "program", "source"]},
+      "root_targets": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+      "authorization_attestation": {"type": "string", "minLength": 20}
+    },
+    "additionalProperties": false
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:engagement-intake:output",
+    "type": "object",
+    "required": ["authorization_status"],
+    "properties": {"authorization_status": {"enum": ["draft", "authorized", "revoked"]}},
+    "additionalProperties": false
+  }
+}

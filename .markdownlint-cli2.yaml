@@ -1,0 +1,20 @@
+config:
+  default: false
+  MD001: true
+  MD003: true
+  MD009: true
+  MD010: true
+  MD022: true
+  MD031: true
+  MD032: true
+  MD040: true
+  MD047: true
+globs:
+  - "**/*.md"
+ignores:
+  - ".budobugs/**"
+  - ".venv/**"
+  - "engagements/**"
+  - "findings/**"
+  - "node_modules/**"
+  - "runs/**"

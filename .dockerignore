@@ -1,0 +1,17 @@
+.git
+.budobugs
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.venv
+node_modules
+dist
+engagements
+findings
+fixtures
+release
+runs
+.coverage
+coverage.xml
+*.pyc
+__pycache__

@@ -1,0 +1,102 @@
+tools:
+  - &container
+    name: zap
+    category: proxy
+    source: https://github.com/zaproxy/zaproxy
+    version: 2.17.0
+    commit: null
+    license: Apache-2.0
+    install_method: container
+    profile: extended
+    executable: null
+    container_image: ghcr.io/zaproxy/zaproxy:2.17.0@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef
+    supported_platforms: [container]
+    required_secrets: []
+    network_behavior: [localhost API and Docker lab network]
+    mutation_level: medium
+    resource_risk: medium
+    supported_modes: [lab, program]
+    timeout: 600
+    concurrency: 1
+    parser: zap-json
+    healthcheck: [zap-baseline.py, --help]
+    output_schema: schemas/zap.schema.json
+    redaction_rules: [tokens, cookies, pii]
+  - <<: *container
+    name: burp-mcp
+    source: https://github.com/PortSwigger/mcp-server
+    version: v1.3.0
+    commit: 5f76126409780ecba2b766c7f7388f465c5b5f94
+    license: GPL-3.0-only
+    install_method: manual
+    executable: null
+    container_image: null
+    supported_platforms: [windows, linux]
+    required_secrets: []
+    network_behavior: [localhost MCP to user-installed Burp]
+    mutation_level: low
+    resource_risk: low
+    healthcheck: [--help]
+  - <<: *container
+    name: caido
+    source: https://github.com/caido/sdk-js
+    version: 0.5.0
+    commit: 1bdd37ddefdea728b3b8da646a25429892f9bb8e
+    license: MIT
+    install_method: manual
+    executable: null
+    container_image: null
+    supported_platforms: [windows, linux]
+    required_secrets: [CAIDO_PAT]
+    network_behavior: [localhost or configured Caido instance]
+    mutation_level: low
+    resource_risk: low
+    healthcheck: [--help]
+  - <<: *container
+    name: interactsh-client
+    category: active-recon
+    source: https://github.com/projectdiscovery/interactsh
+    version: v1.3.1
+    license: MIT
+    install_method: go
+    executable: interactsh-client
+    container_image: null
+    supported_platforms: [windows, linux, wsl]
+    network_behavior: [external OOB service only when explicitly allowed]
+    mutation_level: medium
+    resource_risk: medium
+    supported_modes: [lab]
+    healthcheck: [-version]
+    target_argument: null
+  - <<: *container
+    name: syft
+    category: supply-chain
+    source: https://github.com/anchore/syft
+    version: v1.50.0
+    license: Apache-2.0
+    install_method: release
+    executable: syft
+    container_image: null
+    supported_platforms: [windows, linux, wsl]
+    network_behavior: [none]
+    mutation_level: none
+    resource_risk: medium
+    supported_modes: [lab, source]
+    healthcheck: [version]
+    target_argument: null
+  - <<: *container
+    name: grype
+    category: supply-chain
+    source: https://github.com/anchore/grype
+    version: v0.116.1
+    license: Apache-2.0
+    install_method: release
+    executable: grype
+    container_image: null
+    supported_platforms: [windows, linux, wsl]
+    network_behavior: [downloads vulnerability database]
+    mutation_level: none
+    resource_risk: medium
+    supported_modes: [lab, source]
+    healthcheck: [version]
+    target_argument: null

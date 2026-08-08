@@ -1,0 +1,5 @@
+# Agent Skills discovery metadata.
+interface:
+  display_name: "hypothesis-and-validation"
+  short_description: "BudoBugs authorized security workflow"
+  default_prompt: "Use $hypothesis-and-validation for this authorized BudoBugs task."

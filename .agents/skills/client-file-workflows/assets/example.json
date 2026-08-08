@@ -1,0 +1,10 @@
+{
+  "engagement_id": "lab-example",
+  "flow": "upload-preview-download",
+  "artifact_refs": [
+    "exchange-001"
+  ],
+  "expected_output": {
+    "status": "HYPOTHESIS"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "engagement_id": "source-example",
+  "source_root": "C:/authorized/source",
+  "expected_output": {
+    "signals": [],
+    "secret_values_in_output": 0
+  }
+}

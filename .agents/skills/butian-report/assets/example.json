@@ -1,0 +1,12 @@
+{
+  "finding_id": "finding-confirmed",
+  "status": "READY_FOR_HUMAN_REVIEW",
+  "critic_verdict": "CONFIRMED",
+  "expected_output": {
+    "formats": [
+      "markdown",
+      "html"
+    ],
+    "automatic_submission": false
+  }
+}

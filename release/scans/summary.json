@@ -1,0 +1,48 @@
+{
+  "evidence_boundary": "Counts are recomputed from the adjacent raw JSON artifacts; release verification independently recomputes them and fails on scanner errors, secrets, unexplained high/critical findings, or any mismatch across the unfiltered Grype report, source-bound VEX review, and final report.",
+  "generated_at": "2026-08-08T18:36:33.843364+00:00",
+  "license_inventory": {
+    "node": {
+      "packages": 16,
+      "unresolved": 0
+    },
+    "python": {
+      "packages": 57,
+      "unresolved": 0
+    }
+  },
+  "observations": {
+    "gitleaks": 0,
+    "grype_fixture_severe": 0,
+    "osv": 0,
+    "semgrep": 0,
+    "trivy_fixture_secrets": 0,
+    "trivy_fixture_severe": 0,
+    "trivy_fs_secrets": 0,
+    "trivy_fs_severe": 0
+  },
+  "project": "BudoBugs",
+  "reviewed_observations": {
+    "grype_fixture_raw_severe": 12,
+    "grype_fixture_vex_reviewed": 12
+  },
+  "scanner_versions": {
+    "gitleaks": "v8.30.1",
+    "grype": "v0.116.1",
+    "osv-scanner": "v2.5.0",
+    "semgrep": "1.172.0",
+    "syft": "v1.50.0",
+    "trivy": "v0.73.0"
+  },
+  "schema_version": 1,
+  "status": "PASS",
+  "validated_integrations": {
+    "hexstrike-ai": {
+      "arbitrary_command_endpoint_used": false,
+      "commit": "d689933ff579d839c676c82b231f8e98326c5f04",
+      "mode": "lab",
+      "target": "loopback"
+    }
+  },
+  "version": "2026.8.8"
+}

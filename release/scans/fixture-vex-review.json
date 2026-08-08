@@ -1,0 +1,236 @@
+{
+  "control": {
+    "prohibited_tokens_absent": [
+      "BZ2Decompressor",
+      "ElementDeclHandler",
+      "ElementTree",
+      "FTS5",
+      "HTMLParser",
+      "LZMADecompressor",
+      "http.cookies",
+      "sqlalchemy",
+      "sqlite3",
+      "tarfile",
+      "webbrowser",
+      "xml.parsers"
+    ],
+    "review_scope": "All High/Critical matches in the unfiltered Grype report"
+  },
+  "decisions": [
+    {
+      "artifact": "python",
+      "impact_statement": "The fixture has no archive upload or extraction path and never imports or calls tarfile.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "match_types": [
+        "cpe-match"
+      ],
+      "namespace": "nvd:cpe",
+      "purl": "pkg:generic/python@3.12.13",
+      "references": [
+        "https://github.com/python/cpython/issues/151558"
+      ],
+      "severity": "High",
+      "status": "not_affected",
+      "version": "3.12.13",
+      "vulnerability": "CVE-2026-11940"
+    },
+    {
+      "artifact": "python",
+      "impact_statement": "The fixture never opens tar archives or invokes tarfile streaming mode.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "match_types": [
+        "cpe-match"
+      ],
+      "namespace": "nvd:cpe",
+      "purl": "pkg:generic/python@3.12.13",
+      "references": [
+        "https://github.com/python/cpython/issues/151981"
+      ],
+      "severity": "High",
+      "status": "not_affected",
+      "version": "3.12.13",
+      "vulnerability": "CVE-2026-11972"
+    },
+    {
+      "artifact": "python",
+      "impact_statement": "The fixture uses html.escape only; it never instantiates HTMLParser or parses attacker HTML.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "match_types": [
+        "cpe-match"
+      ],
+      "namespace": "nvd:cpe",
+      "purl": "pkg:generic/python@3.12.13",
+      "references": [
+        "https://github.com/python/cpython/issues/153030"
+      ],
+      "severity": "High",
+      "status": "not_affected",
+      "version": "3.12.13",
+      "vulnerability": "CVE-2026-15308"
+    },
+    {
+      "artifact": "python",
+      "impact_statement": "The image is Linux/Alpine; the affected Windows-only Proactor event-loop implementation is absent.",
+      "justification": "component_not_present",
+      "match_types": [
+        "cpe-match"
+      ],
+      "namespace": "nvd:cpe",
+      "purl": "pkg:generic/python@3.12.13",
+      "references": [
+        "https://github.com/python/cpython/issues/148808"
+      ],
+      "severity": "High",
+      "status": "not_affected",
+      "version": "3.12.13",
+      "vulnerability": "CVE-2026-3298"
+    },
+    {
+      "artifact": "python",
+      "impact_statement": "The fixture never imports http.cookies or invokes Morsel update, pickle, or js_output paths.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "match_types": [
+        "cpe-match"
+      ],
+      "namespace": "nvd:cpe",
+      "purl": "pkg:generic/python@3.12.13",
+      "references": [
+        "https://github.com/python/cpython/issues/145599"
+      ],
+      "severity": "High",
+      "status": "not_affected",
+      "version": "3.12.13",
+      "vulnerability": "CVE-2026-3644"
+    },
+    {
+      "artifact": "python",
+      "impact_statement": "The fixture has no XML or DTD parsing path and never registers an Expat ElementDeclHandler.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "match_types": [
+        "cpe-match"
+      ],
+      "namespace": "nvd:cpe",
+      "purl": "pkg:generic/python@3.12.13",
+      "references": [
+        "https://github.com/python/cpython/issues/145986"
+      ],
+      "severity": "High",
+      "status": "not_affected",
+      "version": "3.12.13",
+      "vulnerability": "CVE-2026-4224"
+    },
+    {
+      "artifact": "python",
+      "impact_statement": "The fixture never imports webbrowser or forwards URLs to a browser command or shell.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "match_types": [
+        "cpe-match"
+      ],
+      "namespace": "nvd:cpe",
+      "purl": "pkg:generic/python@3.12.13",
+      "references": [
+        "https://github.com/python/cpython/issues/148169"
+      ],
+      "severity": "High",
+      "status": "not_affected",
+      "version": "3.12.13",
+      "vulnerability": "CVE-2026-4786"
+    },
+    {
+      "artifact": "python",
+      "impact_statement": "The fixture performs no gzip, bz2, or lzma decompression and cannot reuse a failed decompressor.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "match_types": [
+        "cpe-match"
+      ],
+      "namespace": "nvd:cpe",
+      "purl": "pkg:generic/python@3.12.13",
+      "references": [
+        "https://github.com/python/cpython/issues/148395"
+      ],
+      "severity": "High",
+      "status": "not_affected",
+      "version": "3.12.13",
+      "vulnerability": "CVE-2026-6100"
+    },
+    {
+      "artifact": "python",
+      "impact_statement": "The fixture accepts no XML documents and never invokes Expat or ElementTree parsing.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "match_types": [
+        "cpe-match"
+      ],
+      "namespace": "nvd:cpe",
+      "purl": "pkg:generic/python@3.12.13",
+      "references": [
+        "https://github.com/python/cpython/issues/149018"
+      ],
+      "severity": "High",
+      "status": "not_affected",
+      "version": "3.12.13",
+      "vulnerability": "CVE-2026-7210"
+    },
+    {
+      "artifact": "python",
+      "impact_statement": "The fixture performs no bz2 decompression and cannot reuse a BZ2Decompressor after an error.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "match_types": [
+        "cpe-match"
+      ],
+      "namespace": "nvd:cpe",
+      "purl": "pkg:generic/python@3.12.13",
+      "references": [
+        "https://github.com/python/cpython/issues/150599"
+      ],
+      "severity": "High",
+      "status": "not_affected",
+      "version": "3.12.13",
+      "vulnerability": "CVE-2026-9669"
+    },
+    {
+      "artifact": "sqlite-libs",
+      "impact_statement": "The fixture is backed only by in-memory dictionaries; it accepts no database, SQL, or FTS5 input.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "match_types": [
+        "cpe-match"
+      ],
+      "namespace": "nvd:cpe",
+      "purl": "pkg:apk/alpine/sqlite-libs@3.51.2-r0?arch=x86_64&distro=alpine-3.23.5&upstream=sqlite",
+      "references": [
+        "https://sqlite.org/cves.html",
+        "https://sqlite.org/releaselog/3_53_2.html"
+      ],
+      "severity": "High",
+      "status": "not_affected",
+      "version": "3.51.2-r0",
+      "vulnerability": "CVE-2026-11822"
+    },
+    {
+      "artifact": "sqlite-libs",
+      "impact_statement": "The fixture is backed only by in-memory dictionaries; it accepts no database, SQL, or FTS5 input.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "match_types": [
+        "cpe-match"
+      ],
+      "namespace": "nvd:cpe",
+      "purl": "pkg:apk/alpine/sqlite-libs@3.51.2-r0?arch=x86_64&distro=alpine-3.23.5&upstream=sqlite",
+      "references": [
+        "https://sqlite.org/cves.html",
+        "https://sqlite.org/releaselog/3_53_2.html"
+      ],
+      "severity": "High",
+      "status": "not_affected",
+      "version": "3.51.2-r0",
+      "vulnerability": "CVE-2026-11824"
+    }
+  ],
+  "distro": {
+    "idLike": [],
+    "name": "alpine",
+    "version": "3.23.5"
+  },
+  "fixture_source": "src/budobugs/labs/fixture_app.py",
+  "fixture_source_sha256": "80bf3060fb4fdd262bcdc3ae3dcc84d90ff6f88ac2614322e146a1aa3953e392",
+  "image_manifest": "sha256:07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12",
+  "schema_version": 1
+}

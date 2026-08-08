@@ -1,0 +1,77 @@
+tools:
+  - &lab_ai
+    name: pentestgpt
+    category: lab-ai
+    source: https://github.com/GreyDGL/PentestGPT
+    version: e8b1bb77d1ac00329675cec3b060aba971ec1ac8
+    commit: e8b1bb77d1ac00329675cec3b060aba971ec1ac8
+    license: MIT
+    profile: lab-ai
+    executable: null
+    container_image: null
+    install_method: manual
+    supported_platforms: [container]
+    required_secrets: [OPENAI_API_KEY]
+    network_behavior: [model API and Docker lab network]
+    mutation_level: high
+    resource_risk: high
+    supported_modes: [lab]
+    timeout: 1800
+    concurrency: 1
+    parser: external-agent-json
+    healthcheck: [--help]
+    output_schema: schemas/external-agent.schema.json
+    redaction_rules: [all-secrets, pii]
+  - <<: *lab_ai
+    name: strix
+    source: https://github.com/usestrix/strix
+    version: f8a8801d5672529ddf66271415ed3ec379186842
+    commit: f8a8801d5672529ddf66271415ed3ec379186842
+    license: Apache-2.0
+    container_image: null
+    install_method: manual
+  - <<: *lab_ai
+    name: shannon
+    source: https://github.com/KeygraphHQ/shannon
+    version: 760a1402287bd67e568405141dda43016f339a80
+    commit: 760a1402287bd67e568405141dda43016f339a80
+    license: AGPL-3.0-only
+    container_image: null
+    install_method: manual
+  - <<: *lab_ai
+    name: cai
+    source: https://github.com/aliasrobotics/cai
+    version: 62871b6f5a4b8951b2f4dd94dbb301ac306b3a65
+    commit: 62871b6f5a4b8951b2f4dd94dbb301ac306b3a65
+    license: MIT
+    container_image: null
+    install_method: manual
+  - <<: *lab_ai
+    name: hexstrike-ai
+    source: https://github.com/0x4m4/hexstrike-ai
+    version: 6.0.0-d689933
+    commit: d689933ff579d839c676c82b231f8e98326c5f04
+    license: MIT
+    container_image: null
+    install_method: python
+    supported_platforms: [windows, linux, wsl]
+    required_secrets: []
+    network_behavior: [localhost control API and explicit localhost lab target only]
+    mutation_level: low
+    healthcheck: [http://127.0.0.1:18889/budobugs-health]
+  - <<: *lab_ai
+    name: vulneramcp
+    source: https://github.com/telmon95/VulneraMCP
+    version: 0dd7eed838d3740d4eda592803368138aad28bda
+    commit: 0dd7eed838d3740d4eda592803368138aad28bda
+    license: MIT
+    container_image: null
+    install_method: manual
+  - <<: *lab_ai
+    name: kali-mcp
+    source: https://github.com/zebbern/zebbern-kali-mcp
+    version: 30190b5a707985a06d724a1cbc4f9eb2fa1e3b8c
+    commit: 30190b5a707985a06d724a1cbc4f9eb2fa1e3b8c
+    license: audit-required
+    container_image: null
+    install_method: manual

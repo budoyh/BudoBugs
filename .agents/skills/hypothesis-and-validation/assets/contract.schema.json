@@ -1,0 +1,29 @@
+{
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:hypothesis-and-validation:input",
+    "type": "object",
+    "required": ["engagement_id", "hypothesis", "validation_plan"],
+    "properties": {
+      "engagement_id": {"type": "string", "minLength": 3},
+      "hypothesis": {"type": "object", "minProperties": 1},
+      "validation_plan": {"type": "object", "minProperties": 1}
+    },
+    "additionalProperties": false
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:hypothesis-and-validation:output",
+    "type": "object",
+    "required": ["controls"],
+    "properties": {
+      "controls": {
+        "type": "array",
+        "minItems": 3,
+        "items": {"enum": ["normal", "negative", "refutation"]},
+        "uniqueItems": true
+      }
+    },
+    "additionalProperties": false
+  }
+}

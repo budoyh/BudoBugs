@@ -1,0 +1,19 @@
+mode: program
+allowed_mutation_levels: [none, low]
+allowed_resource_risks: [low, medium]
+max_concurrency: 4
+max_requests_per_second: 2
+allow_external_oob: false
+allow_state_change: controlled
+forbidden_capabilities:
+  - resource_exhaustion
+  - password_bruteforce
+  - credential_stuffing
+  - social_engineering
+  - phishing
+  - malware
+  - persistence
+  - lateral_movement
+  - destructive_delete
+  - third_party_bulk_access
+  - automatic_submission

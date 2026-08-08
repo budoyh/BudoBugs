@@ -1,0 +1,7 @@
+mode: source
+allowed_mutation_levels: [none, low]
+allowed_resource_risks: [low, medium]
+max_concurrency: 4
+max_requests_per_second: 2
+allow_external_oob: false
+allow_state_change: local_only

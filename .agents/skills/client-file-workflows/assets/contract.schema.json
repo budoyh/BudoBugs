@@ -1,0 +1,22 @@
+{
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:client-file-workflows:input",
+    "type": "object",
+    "required": ["engagement_id", "flow", "artifact_refs"],
+    "properties": {
+      "engagement_id": {"type": "string", "minLength": 3},
+      "flow": {"type": "string", "minLength": 1},
+      "artifact_refs": {"type": "array", "items": {"type": "string"}}
+    },
+    "additionalProperties": false
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:client-file-workflows:output",
+    "type": "object",
+    "required": ["status"],
+    "properties": {"status": {"enum": ["HYPOTHESIS", "HOLD", "KILL", "CONFIRMED"]}},
+    "additionalProperties": false
+  }
+}

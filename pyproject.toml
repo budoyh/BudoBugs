@@ -1,0 +1,135 @@
+[build-system]
+requires = ["hatchling==1.28.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "budobugs"
+version = "2026.8.8"
+description = "Budo Autonomous Bug Bounty OS"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { file = "LICENSE" }
+authors = [{ name = "BudoBugs contributors" }]
+keywords = ["authorized-security", "bug-bounty", "agent", "evidence"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+]
+dependencies = [
+  "fastapi>=0.116,<1",
+  "httpx[http2]>=0.28,<1",
+  "jinja2>=3.1,<4",
+  "keyring>=25.6,<26",
+  "mcp>=1.26,<2",
+  "platformdirs>=4.3,<5",
+  "playwright==1.62.0",
+  "pydantic>=2.12,<3",
+  "pydantic-settings>=2.10,<3",
+  "pyyaml>=6.0,<7",
+  "rich>=14.1,<15",
+  "sqlalchemy>=2.0,<3",
+  "textual>=6.1,<7",
+  "typer>=0.20,<1",
+  "uvicorn>=0.35,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "hypothesis>=6.138,<7",
+  "jsonschema>=4.26,<5",
+  "mypy>=1.17,<2",
+  "pre-commit>=4.3,<5",
+  "pytest>=9.0.3,<10",
+  "pytest-asyncio>=1.1,<2",
+  "pytest-cov>=6.2,<7",
+  "ruff>=0.12,<1",
+  "shellcheck-py==0.11.0.1",
+  "types-pyyaml>=6.0,<7",
+  "yamllint>=1.38,<2",
+]
+
+[project.scripts]
+budo = "budobugs.cli.app:app"
+
+[project.urls]
+Homepage = "https://github.com/budoyh/BudoBugs"
+Repository = "https://github.com/budoyh/BudoBugs"
+Issues = "https://github.com/budoyh/BudoBugs/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/budobugs"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"config" = "budobugs/_bundled_config"
+"tools/registry" = "budobugs/_bundled_tools"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "A", "ASYNC", "C4", "DTZ", "G", "ICN", "PIE", "PT", "RET", "RSE", "SIM", "T20"]
+ignore = ["B008", "ASYNC109", "ASYNC240", "UP047"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]
+".agents/**/scripts/*.py" = ["T201"]
+"scripts/*.py" = ["T201"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["budobugs"]
+warn_unused_configs = true
+exclude = ["src/budobugs/labs/fixture_app.py"]
+
+[[tool.mypy.overrides]]
+module = ["keyring.*", "yaml.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["budobugs.mcp.server"]
+disallow_untyped_decorators = false
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra --strict-config --strict-markers"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+  "docker: requires a working Docker daemon",
+  "e2e: end-to-end local lab flow",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["budobugs"]
+omit = [
+  "src/budobugs/cli/*",
+  "src/budobugs/agents/runner.py",
+  "src/budobugs/labs/fixture_app.py",
+  "src/budobugs/labs/manager.py",
+  "src/budobugs/mcp/server.py",
+  "src/budobugs/proxy/burp.py",
+  "src/budobugs/proxy/caido.py",
+  "src/budobugs/proxy/har.py",
+  "src/budobugs/proxy/mcp.py",
+  "src/budobugs/proxy/zap.py",
+  "src/budobugs/tools/doctor.py",
+  "src/budobugs/tools/health.py",
+  "src/budobugs/tools/installer.py",
+  "src/budobugs/tui.py",
+]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+skip_covered = true
+exclude_also = [
+  "if TYPE_CHECKING:",
+  "if __name__ == .__main__.:",
+]

@@ -1,0 +1,22 @@
+{
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:budobugs-controller:input",
+    "type": "object",
+    "required": ["engagement_id", "requested_goal"],
+    "properties": {
+      "engagement_id": {"type": "string", "minLength": 3},
+      "requested_goal": {"type": "string", "minLength": 1},
+      "route_profile": {"enum": ["quality-first", "economy"]}
+    },
+    "additionalProperties": false
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:budobugs-controller:output",
+    "type": "object",
+    "required": ["status"],
+    "properties": {"status": {"type": "string", "minLength": 1}},
+    "additionalProperties": false
+  }
+}

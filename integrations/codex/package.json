@@ -1,0 +1,11 @@
+{
+  "name": "@budobugs/codex-integration",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@openai/codex-sdk": "0.147.0"
+  }
+}

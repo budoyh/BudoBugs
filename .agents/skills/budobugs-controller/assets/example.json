@@ -1,0 +1,8 @@
+{
+  "engagement_id": "lab-example",
+  "requested_goal": "complete authorized fixture E2E",
+  "route_profile": "quality-first",
+  "expected_output": {
+    "status": "receipt-backed"
+  }
+}

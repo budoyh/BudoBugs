@@ -1,0 +1,334 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/budoyh/BudoBugs/vex/fixture/07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12",
+  "author": "BudoBugs release process",
+  "role": "Document Creator",
+  "statements": [
+    {
+      "impact_statement": "The fixture has no archive upload or extraction path and never imports or calls tarfile.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "products": [
+        {
+          "@id": "budobugs/fixture:local",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "vulnerability": {
+        "name": "CVE-2026-11940"
+      }
+    },
+    {
+      "impact_statement": "The fixture never opens tar archives or invokes tarfile streaming mode.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "products": [
+        {
+          "@id": "budobugs/fixture:local",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "vulnerability": {
+        "name": "CVE-2026-11972"
+      }
+    },
+    {
+      "impact_statement": "The fixture uses html.escape only; it never instantiates HTMLParser or parses attacker HTML.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "products": [
+        {
+          "@id": "budobugs/fixture:local",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "vulnerability": {
+        "name": "CVE-2026-15308"
+      }
+    },
+    {
+      "impact_statement": "The image is Linux/Alpine; the affected Windows-only Proactor event-loop implementation is absent.",
+      "justification": "component_not_present",
+      "products": [
+        {
+          "@id": "budobugs/fixture:local",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "vulnerability": {
+        "name": "CVE-2026-3298"
+      }
+    },
+    {
+      "impact_statement": "The fixture never imports http.cookies or invokes Morsel update, pickle, or js_output paths.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "products": [
+        {
+          "@id": "budobugs/fixture:local",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "vulnerability": {
+        "name": "CVE-2026-3644"
+      }
+    },
+    {
+      "impact_statement": "The fixture has no XML or DTD parsing path and never registers an Expat ElementDeclHandler.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "products": [
+        {
+          "@id": "budobugs/fixture:local",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "vulnerability": {
+        "name": "CVE-2026-4224"
+      }
+    },
+    {
+      "impact_statement": "The fixture never imports webbrowser or forwards URLs to a browser command or shell.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "products": [
+        {
+          "@id": "budobugs/fixture:local",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "vulnerability": {
+        "name": "CVE-2026-4786"
+      }
+    },
+    {
+      "impact_statement": "The fixture performs no gzip, bz2, or lzma decompression and cannot reuse a failed decompressor.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "products": [
+        {
+          "@id": "budobugs/fixture:local",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "vulnerability": {
+        "name": "CVE-2026-6100"
+      }
+    },
+    {
+      "impact_statement": "The fixture accepts no XML documents and never invokes Expat or ElementTree parsing.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "products": [
+        {
+          "@id": "budobugs/fixture:local",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "vulnerability": {
+        "name": "CVE-2026-7210"
+      }
+    },
+    {
+      "impact_statement": "The fixture performs no bz2 decompression and cannot reuse a BZ2Decompressor after an error.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "products": [
+        {
+          "@id": "budobugs/fixture:local",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "subcomponents": [
+            {
+              "@id": "pkg:generic/python@3.12.13"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "vulnerability": {
+        "name": "CVE-2026-9669"
+      }
+    },
+    {
+      "impact_statement": "The fixture is backed only by in-memory dictionaries; it accepts no database, SQL, or FTS5 input.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "products": [
+        {
+          "@id": "budobugs/fixture:local",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/sqlite-libs@3.51.2-r0?arch=x86_64&distro=alpine-3.23.5&upstream=sqlite"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/sqlite-libs@3.51.2-r0?arch=x86_64&distro=alpine-3.23.5&upstream=sqlite"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "vulnerability": {
+        "name": "CVE-2026-11822"
+      }
+    },
+    {
+      "impact_statement": "The fixture is backed only by in-memory dictionaries; it accepts no database, SQL, or FTS5 input.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "products": [
+        {
+          "@id": "budobugs/fixture:local",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/sqlite-libs@3.51.2-r0?arch=x86_64&distro=alpine-3.23.5&upstream=sqlite"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "subcomponents": [
+            {
+              "@id": "pkg:apk/alpine/sqlite-libs@3.51.2-r0?arch=x86_64&distro=alpine-3.23.5&upstream=sqlite"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "vulnerability": {
+        "name": "CVE-2026-11824"
+      }
+    }
+  ],
+  "timestamp": "2026-08-08T18:21:18.441082+00:00",
+  "version": 1
+}

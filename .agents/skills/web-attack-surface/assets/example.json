@@ -1,0 +1,11 @@
+{
+  "engagement_id": "lab-example",
+  "exchange_refs": [
+    "http-001"
+  ],
+  "expected_output": {
+    "endpoint_families": [
+      "GET /api/objects/{id}"
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "engagement_id": "lab-example",
+  "root_targets": [
+    "http://fixture:8765"
+  ],
+  "expected_output": {
+    "assets": [],
+    "network_boundary": "docker-internal"
+  }
+}

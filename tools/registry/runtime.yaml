@@ -1,0 +1,112 @@
+tools:
+  - &python
+    name: python
+    category: runtime
+    source: https://www.python.org/
+    version: "3.12.13"
+    commit: null
+    license: PSF-2.0
+    install_method: bundled
+    profile: core
+    executable: python
+    container_image: null
+    supported_platforms: [windows, linux, wsl, container]
+    required_secrets: []
+    network_behavior: [none]
+    mutation_level: none
+    resource_risk: low
+    supported_modes: [lab, program, source]
+    timeout: 20
+    concurrency: 4
+    parser: text-version
+    healthcheck: [--version]
+    output_schema: schemas/tool-health.schema.json
+    redaction_rules: []
+  - <<: *python
+    name: uv
+    source: https://github.com/astral-sh/uv
+    version: "0.11.26"
+    license: Apache-2.0 OR MIT
+    executable: uv
+    healthcheck: [--version]
+  - <<: *python
+    name: node
+    source: https://nodejs.org/
+    version: "24.14.0"
+    license: MIT
+    executable: node
+    healthcheck: [--version]
+  - <<: *python
+    name: pnpm
+    source: https://github.com/pnpm/pnpm
+    version: "11.1.3"
+    license: MIT
+    executable: pnpm
+    healthcheck: [--version]
+  - <<: *python
+    name: go
+    source: https://go.dev/
+    version: "1.26.5"
+    license: BSD-3-Clause
+    executable: go
+    healthcheck: [version]
+  - <<: *python
+    name: docker
+    source: https://github.com/docker/cli
+    version: "29.7.2-cli/29.1.3-wsl-engine"
+    license: Apache-2.0
+    install_method: manual
+    executable: docker
+    healthcheck: [version]
+  - <<: *python
+    name: jq
+    source: https://github.com/jqlang/jq
+    version: "1.8.2"
+    license: MIT
+    executable: jq
+    healthcheck: [--version]
+  - <<: *python
+    name: yq
+    source: https://github.com/mikefarah/yq
+    version: "4.53.3"
+    license: MIT
+    executable: yq
+    healthcheck: [--version]
+  - <<: *python
+    name: ripgrep
+    source: https://github.com/BurntSushi/ripgrep
+    version: "15.2.0"
+    license: MIT OR Unlicense
+    executable: rg
+    healthcheck: [--version]
+  - <<: *python
+    name: fd
+    source: https://github.com/sharkdp/fd
+    version: "10.4.2"
+    license: Apache-2.0 OR MIT
+    executable: fd
+    healthcheck: [--version]
+  - <<: *python
+    name: sqlite
+    source: https://www.sqlite.org/
+    version: "3.53.4"
+    license: blessing
+    executable: sqlite3
+    healthcheck: [--version]
+  - <<: *python
+    name: playwright
+    source: https://github.com/microsoft/playwright-python
+    version: "1.62.0"
+    license: Apache-2.0
+    install_method: python
+    executable: playwright
+    healthcheck: [--version]
+  - <<: *python
+    name: chromium
+    source: https://playwright.dev/
+    version: "playwright-1.62.0"
+    license: BSD-3-Clause and third-party notices
+    install_method: python
+    executable: playwright
+    healthcheck: [install, --dry-run, chromium]
+    resource_risk: medium

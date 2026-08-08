@@ -1,0 +1,201 @@
+tools:
+  - &go_tool
+    name: subfinder
+    category: passive-recon
+    source: https://github.com/projectdiscovery/subfinder
+    version: v2.15.0
+    commit: null
+    license: MIT
+    install_method: go
+    profile: core
+    executable: subfinder
+    container_image: null
+    supported_platforms: [windows, linux, wsl]
+    required_secrets: []
+    network_behavior: [queries public passive sources]
+    mutation_level: none
+    resource_risk: medium
+    supported_modes: [lab, program]
+    timeout: 300
+    concurrency: 2
+    parser: jsonl
+    healthcheck: [-version]
+    output_schema: schemas/subfinder.schema.json
+    redaction_rules: [tokens, emails]
+    target_argument: -d
+    retry_count: 1
+  - <<: *go_tool
+    name: dnsx
+    category: active-recon
+    source: https://github.com/projectdiscovery/dnsx
+    version: v1.3.0
+    executable: dnsx
+    network_behavior: [queries only engagement-injected DNS names using configured resolvers]
+    mutation_level: low
+    healthcheck: [-version]
+    target_argument: -d
+  - <<: *go_tool
+    name: httpx
+    category: active-recon
+    source: https://github.com/projectdiscovery/httpx
+    version: v1.10.0
+    executable: httpx
+    network_behavior: [connects only to engagement-injected URLs]
+    mutation_level: low
+    healthcheck: [-version]
+    target_argument: -u
+  - <<: *go_tool
+    name: katana
+    category: active-recon
+    source: https://github.com/projectdiscovery/katana
+    version: v1.7.0
+    executable: katana
+    network_behavior: [crawls only engagement-injected root]
+    mutation_level: low
+    healthcheck: [-version]
+    target_argument: -u
+  - <<: *go_tool
+    name: urlfinder
+    source: https://github.com/projectdiscovery/urlfinder
+    version: v0.0.3
+    executable: urlfinder
+    healthcheck: [-version]
+    target_argument: -d
+  - <<: *go_tool
+    name: gau
+    source: https://github.com/lc/gau
+    version: v2.2.4
+    executable: gau
+    healthcheck: [--version]
+    target_argument: --subs
+  - <<: *go_tool
+    name: waybackurls
+    source: https://github.com/tomnomnom/waybackurls
+    version: v0.1.0
+    executable: waybackurls
+    healthcheck: [-h]
+    target_argument: null
+  - <<: *go_tool
+    name: nuclei
+    category: active-recon
+    source: https://github.com/projectdiscovery/nuclei
+    version: v3.11.0
+    executable: nuclei
+    network_behavior: [template requests to engagement target]
+    mutation_level: low
+    resource_risk: medium
+    healthcheck: [-version]
+    target_argument: -u
+  - <<: *go_tool
+    name: ffuf
+    category: active-recon
+    source: https://github.com/ffuf/ffuf
+    version: v2.2.1
+    executable: ffuf
+    network_behavior: [wordlist requests to engagement target]
+    mutation_level: medium
+    resource_risk: high
+    supported_modes: [lab]
+    healthcheck: [-V]
+    target_argument: -u
+  - <<: *go_tool
+    name: feroxbuster
+    category: active-recon
+    source: https://github.com/epi052/feroxbuster
+    version: v2.13.1
+    license: MIT
+    install_method: release
+    executable: feroxbuster
+    network_behavior: [recursive requests to engagement target]
+    mutation_level: medium
+    resource_risk: high
+    supported_modes: [lab]
+    healthcheck: [--version]
+    target_argument: --url
+  - <<: *go_tool
+    name: arjun
+    category: active-recon
+    source: https://github.com/s0md3v/Arjun
+    version: 2.2.7
+    license: AGPL-3.0-only
+    install_method: python
+    executable: arjun
+    network_behavior: [parameter probes to engagement target]
+    mutation_level: medium
+    resource_risk: medium
+    supported_modes: [lab]
+    healthcheck: [--help]
+    target_argument: -u
+  - <<: *go_tool
+    name: dalfox
+    category: active-recon
+    source: https://github.com/hahwul/dalfox
+    version: v3.2.0
+    executable: dalfox
+    network_behavior: [xss probes to engagement target]
+    mutation_level: medium
+    resource_risk: medium
+    supported_modes: [lab]
+    healthcheck: [--version]
+    target_argument: url
+  - <<: *go_tool
+    name: gitleaks
+    category: source
+    source: https://github.com/gitleaks/gitleaks
+    version: v8.30.1
+    executable: gitleaks
+    network_behavior: [none]
+    healthcheck: [version]
+    target_argument: --source
+    fixed_arguments: [detect, --no-git, --redact, --report-format, json, --report-path, "{output_dir}/gitleaks.json"]
+    supported_modes: [lab, program, source]
+  - <<: *go_tool
+    name: semgrep
+    category: source
+    source: https://github.com/semgrep/semgrep
+    version: 1.172.0
+    license: LGPL-2.1-or-later
+    install_method: python
+    executable: semgrep
+    network_behavior: [optional rule download]
+    healthcheck: [--version]
+    target_argument: ""
+    fixed_arguments: [scan, --config, "{workspace_root}/config/semgrep.yml", --json, --output, "{output_dir}/semgrep.json", --metrics, "off"]
+    supported_platforms: [linux, wsl, container]
+    supported_modes: [lab, source]
+  - <<: *go_tool
+    name: trivy
+    category: supply-chain
+    source: https://github.com/aquasecurity/trivy
+    version: v0.73.0
+    license: Apache-2.0
+    executable: trivy
+    network_behavior: [downloads vulnerability database]
+    healthcheck: [--version]
+    target_argument: ""
+    fixed_arguments: [fs, --format, json, --output, "{output_dir}/trivy.json", --scanners, "vuln,secret,misconfig", --exit-code, "0"]
+    supported_modes: [lab, source]
+  - <<: *go_tool
+    name: osv-scanner
+    category: supply-chain
+    source: https://github.com/google/osv-scanner
+    version: v2.5.0
+    license: Apache-2.0
+    executable: osv-scanner
+    network_behavior: [queries OSV service]
+    healthcheck: [--version]
+    target_argument: ""
+    fixed_arguments: [scan, source, --recursive, --format, json, --output-file, "{output_dir}/osv.json"]
+    supported_modes: [lab, source]
+  - <<: *go_tool
+    name: mitmproxy
+    category: proxy
+    source: https://github.com/mitmproxy/mitmproxy
+    version: 12.2.3
+    license: MIT
+    install_method: python
+    executable: mitmdump
+    network_behavior: [localhost proxy; target traffic is engagement-scoped]
+    healthcheck: [--version]
+    target_argument: null
+    supported_modes: [lab, program]

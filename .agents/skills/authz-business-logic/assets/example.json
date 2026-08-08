@@ -1,0 +1,15 @@
+{
+  "engagement_id": "lab-example",
+  "accounts": [
+    "alice",
+    "bob"
+  ],
+  "objects": [
+    "object-1",
+    "object-2"
+  ],
+  "invariant": "accounts read only owned private objects",
+  "expected_output": {
+    "single_variable": "object_id"
+  }
+}

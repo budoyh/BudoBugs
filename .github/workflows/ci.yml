@@ -1,0 +1,291 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: 0.11.26
+  PYTHON_VERSION: 3.12.13
+  NODE_VERSION: 24.14.0
+  PNPM_VERSION: 11.1.3
+  GO_VERSION: 1.26.5
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Install uv with setup-uv v9.0.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Install Python with setup-python v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install pnpm with action-setup v6.0.10
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - name: Install Node with setup-node v7.0.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: uv sync --frozen --extra dev
+      - run: pnpm install --frozen-lockfile
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - name: Lint repository YAML only
+        run: >-
+          find .github .agents/skills config docker tools -type f
+          \( -name '*.yaml' -o -name '*.yml' \) -print0 |
+          xargs -0 uv run yamllint
+      - run: pnpm run lint:markdown
+      - run: uv run shellcheck scripts/*.sh
+      - name: Install checksum-verified Hadolint v2.15.1
+        run: |
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+            --output /tmp/hadolint \
+            https://github.com/hadolint/hadolint/releases/download/v2.15.1/hadolint-linux-x86_64
+          echo 'c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507  /tmp/hadolint' |
+            sha256sum --check --strict
+          chmod 0755 /tmp/hadolint
+          find docker -type f -name Dockerfile -print0 |
+            xargs -0 -n1 /tmp/hadolint --config .hadolint.yaml
+
+  typecheck:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Install uv with setup-uv v9.0.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Install Python with setup-python v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install pnpm with action-setup v6.0.10
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - name: Install Node with setup-node v7.0.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: uv sync --frozen --extra dev
+      - run: pnpm install --frozen-lockfile
+      - run: uv run mypy src
+      - run: pnpm run check
+
+  unit:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Install uv with setup-uv v9.0.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Install Python with setup-python v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --frozen --extra dev
+      - run: uv run pytest tests/unit tests/security -q
+
+  integration:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Install uv with setup-uv v9.0.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Install Python with setup-python v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --frozen --extra dev
+      - run: uv run pytest tests/integration -m 'not docker' -q
+
+  coverage:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Install uv with setup-uv v9.0.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Install Python with setup-python v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --frozen --extra dev
+      - run: uv run playwright install --with-deps chromium
+      - name: Enforce core branch coverage
+        run: >-
+          uv run pytest tests/unit tests/integration tests/e2e tests/security
+          -m 'not docker' --cov=budobugs --cov-report=term-missing
+          --cov-report=xml --cov-fail-under=85
+
+  docker-integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Install uv with setup-uv v9.0.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Install Python with setup-python v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --frozen --extra dev
+      - name: Run isolated Docker fixture and real ZAP automation
+        env:
+          BUDOBUGS_RUN_DOCKER_TESTS: "1"
+        run: uv run pytest tests/integration/test_docker_compose.py -k 'not full' -q
+
+  report-fixture:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Install uv with setup-uv v9.0.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Install Python with setup-python v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --frozen --extra dev
+      - run: uv run playwright install --with-deps chromium
+      - name: Run full native E2E including resume, critic, evidence, and report
+        run: uv run pytest tests/e2e/test_local_fixture_hunt.py -q
+
+  security:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Install uv with setup-uv v9.0.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Install Python with setup-python v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install Go with setup-go v7.0.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - run: uv sync --frozen --extra dev
+      - name: Secret scan with locked Gitleaks
+        run: |
+          go install github.com/zricethezav/gitleaks/v8@v8.30.1
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          uv run python scripts/secret_scan.py --path .
+      - name: Semgrep CE local rules
+        run: >-
+          uv tool run --from semgrep==1.172.0 semgrep scan
+          --config config/semgrep.yml --error --metrics off .
+      - name: OSV dependency audit
+        run: |
+          go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.5.0
+          "$(go env GOPATH)/bin/osv-scanner" scan source \
+            --lockfile uv.lock --lockfile pnpm-lock.yaml \
+            --format json --output-file /tmp/osv.json
+      - name: Trivy v0.73.0 filesystem scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          version: 0.73.0
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+
+  container:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - run: docker build --tag budobugs/fixture:ci --file docker/labs/fixture/Dockerfile .
+      - name: Trivy v0.73.0 fixture image scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          version: 0.73.0
+          image-ref: budobugs/fixture:ci
+          format: table
+          exit-code: "1"
+          severity: HIGH,CRITICAL
+
+  skills:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Install uv with setup-uv v9.0.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Install Python with setup-python v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --frozen --extra dev
+      - run: uv run python scripts/verify_skills.py
+      - run: uv run pytest .agents/skills -q
+
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Install uv with setup-uv v9.0.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Install Python with setup-python v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --frozen --extra dev
+      - run: uv run python scripts/verify_release.py --source
+      - run: uv build
+      - run: uv tool run --from twine==6.2.0 twine check dist/*
+      - name: Install and smoke-test the wheel in a clean environment
+        run: |
+          uv venv /tmp/budobugs-release
+          uv pip install --python /tmp/budobugs-release/bin/python dist/*.whl
+          /tmp/budobugs-release/bin/budo version --json

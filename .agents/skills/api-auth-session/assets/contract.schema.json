@@ -1,0 +1,22 @@
+{
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:api-auth-session:input",
+    "type": "object",
+    "required": ["engagement_id", "protocol", "state_observations"],
+    "properties": {
+      "engagement_id": {"type": "string", "minLength": 3},
+      "protocol": {"type": "string", "minLength": 1},
+      "state_observations": {"type": "array", "items": {"type": "string"}}
+    },
+    "additionalProperties": false
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:api-auth-session:output",
+    "type": "object",
+    "required": ["states"],
+    "properties": {"states": {"type": "array", "items": {"type": "string"}}},
+    "additionalProperties": false
+  }
+}

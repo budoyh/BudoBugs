@@ -1,0 +1,28 @@
+name: Bug report
+description: Report a reproducible local, fixture, or source-mode defect.
+title: "[bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include credentials, cookies, production target traffic, or unpublished findings.
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Local reproduction
+      description: Provide the exact local command, fixture, or source-mode input.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: BudoBugs version and platform
+      placeholder: 2026.8.8; Windows 11 / WSL Ubuntu 24.04
+    validations:
+      required: true

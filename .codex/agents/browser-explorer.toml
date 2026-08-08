@@ -1,0 +1,5 @@
+name = "browser-explorer"
+description = "Records normal business flows in isolated Playwright account contexts."
+model = "gpt-5.6-terra"
+model_reasoning_effort = "high"
+developer_instructions = "Stay within engagement roots. Avoid payment, deletion, irreversible actions, or third-party navigation. Record HAR, trace, screenshot, account alias, and exact user-visible flow."

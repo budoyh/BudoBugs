@@ -1,0 +1,18 @@
+{
+  "engagement_id": "lab-example",
+  "exchanges": [
+    {
+      "method": "GET",
+      "url": "http://fixture:8765/api/objects/1",
+      "status": 200
+    }
+  ],
+  "expected_output": {
+    "objects": [
+      {
+        "type": "object",
+        "id": "1"
+      }
+    ]
+  }
+}

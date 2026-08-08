@@ -1,0 +1,24 @@
+{
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:evidence-critic:input",
+    "type": "object",
+    "required": ["finding_id", "pack_path"],
+    "properties": {
+      "finding_id": {"type": "string", "minLength": 3},
+      "pack_path": {"type": "string", "minLength": 1}
+    },
+    "additionalProperties": false
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:evidence-critic:output",
+    "type": "object",
+    "required": ["verdict", "reason"],
+    "properties": {
+      "verdict": {"enum": ["CONFIRMED", "HOLD", "KILL"]},
+      "reason": {"type": "string", "minLength": 1}
+    },
+    "additionalProperties": false
+  }
+}

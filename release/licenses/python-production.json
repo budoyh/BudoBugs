@@ -1,0 +1,767 @@
+{
+  "ecosystem": "python",
+  "generated_at": "2026-08-08T18:21:18.024902+00:00",
+  "packages": [
+    {
+      "declared_license": "MIT",
+      "homepage": "Homepage, https://github.com/fastapi/annotated-doc",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "annotated-doc",
+      "notice_files": [
+        "annotated_doc-0.0.5.dist-info/licenses/LICENSE"
+      ],
+      "version": "0.0.5"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Homepage, https://github.com/annotated-types/annotated-types",
+      "license_classifiers": [
+        "OSI Approved :: MIT License"
+      ],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "annotated-types",
+      "notice_files": [
+        "annotated_types-0.8.0.dist-info/licenses/LICENSE"
+      ],
+      "version": "0.8.0"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Documentation, https://anyio.readthedocs.io/en/latest/",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "anyio",
+      "notice_files": [
+        "anyio-4.14.2.dist-info/licenses/LICENSE"
+      ],
+      "version": "4.14.2"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Documentation, https://www.attrs.org/",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "attrs",
+      "notice_files": [
+        "attrs-26.1.0.dist-info/licenses/LICENSE"
+      ],
+      "version": "26.1.0"
+    },
+    {
+      "declared_license": "MPL-2.0",
+      "homepage": "https://github.com/certifi/python-certifi",
+      "license_classifiers": [
+        "OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)"
+      ],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "certifi",
+      "notice_files": [
+        "certifi-2026.7.22.dist-info/licenses/LICENSE"
+      ],
+      "version": "2026.7.22"
+    },
+    {
+      "declared_license": "MIT-0",
+      "homepage": "Documentation, https://cffi.readthedocs.io/",
+      "license_classifiers": [],
+      "license_expression": "MIT-0",
+      "metadata_source": "installed-distribution",
+      "name": "cffi",
+      "notice_files": [
+        "cffi-2.1.1.dist-info/licenses/LICENSE"
+      ],
+      "version": "2.1.1"
+    },
+    {
+      "declared_license": "BSD-3-Clause",
+      "homepage": "Changes, https://click.palletsprojects.com/page/changes/",
+      "license_classifiers": [],
+      "license_expression": "BSD-3-Clause",
+      "metadata_source": "installed-distribution",
+      "name": "click",
+      "notice_files": [
+        "click-8.4.2.dist-info/licenses/LICENSE.txt"
+      ],
+      "version": "8.4.2"
+    },
+    {
+      "declared_license": "OSI Approved :: BSD License",
+      "homepage": "Homepage, https://github.com/tartley/colorama",
+      "license_classifiers": [
+        "OSI Approved :: BSD License"
+      ],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "colorama",
+      "notice_files": [
+        "colorama-0.4.6.dist-info/licenses/LICENSE.txt"
+      ],
+      "version": "0.4.6"
+    },
+    {
+      "declared_license": "Apache-2.0 OR BSD-3-Clause",
+      "homepage": "changelog, https://cryptography.io/en/latest/changelog/",
+      "license_classifiers": [],
+      "license_expression": "Apache-2.0 OR BSD-3-Clause",
+      "metadata_source": "installed-distribution",
+      "name": "cryptography",
+      "notice_files": [
+        "cryptography-50.0.0.dist-info/licenses/LICENSE",
+        "cryptography-50.0.0.dist-info/licenses/LICENSE.APACHE",
+        "cryptography-50.0.0.dist-info/licenses/LICENSE.BSD"
+      ],
+      "version": "50.0.0"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Homepage, https://github.com/fastapi/fastapi",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "fastapi",
+      "notice_files": [
+        "fastapi-0.141.1.dist-info/licenses/LICENSE"
+      ],
+      "version": "0.141.1"
+    },
+    {
+      "declared_license": "MIT AND PSF-2.0",
+      "homepage": "Homepage, https://greenlet.readthedocs.io",
+      "license_classifiers": [],
+      "license_expression": "MIT AND PSF-2.0",
+      "metadata_source": "installed-distribution",
+      "name": "greenlet",
+      "notice_files": [
+        "greenlet-3.5.4.dist-info/licenses/LICENSE",
+        "greenlet-3.5.4.dist-info/licenses/LICENSE.PSF"
+      ],
+      "version": "3.5.4"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "https://github.com/python-hyper/h11",
+      "license_classifiers": [
+        "OSI Approved :: MIT License"
+      ],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "h11",
+      "notice_files": [
+        "h11-0.16.0.dist-info/licenses/LICENSE.txt"
+      ],
+      "version": "0.16.0"
+    },
+    {
+      "declared_license": "BSD-3-Clause",
+      "homepage": "Documentation, https://www.encode.io/httpcore",
+      "license_classifiers": [
+        "OSI Approved :: BSD License"
+      ],
+      "license_expression": "BSD-3-Clause",
+      "metadata_source": "installed-distribution",
+      "name": "httpcore",
+      "notice_files": [
+        "httpcore-1.0.9.dist-info/licenses/LICENSE.md"
+      ],
+      "version": "1.0.9"
+    },
+    {
+      "declared_license": "BSD-3-Clause",
+      "homepage": "Changelog, https://github.com/encode/httpx/blob/master/CHANGELOG.md",
+      "license_classifiers": [
+        "OSI Approved :: BSD License"
+      ],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "httpx",
+      "notice_files": [
+        "httpx-0.28.1.dist-info/licenses/LICENSE.md"
+      ],
+      "version": "0.28.1"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Homepage, https://github.com/florimondmanca/httpx-sse",
+      "license_classifiers": [],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "httpx-sse",
+      "notice_files": [
+        "httpx_sse-0.4.3.dist-info/licenses/LICENSE"
+      ],
+      "version": "0.4.3"
+    },
+    {
+      "declared_license": "BSD-3-Clause",
+      "homepage": "Changelog, https://github.com/kjd/idna/blob/master/HISTORY.md",
+      "license_classifiers": [],
+      "license_expression": "BSD-3-Clause",
+      "metadata_source": "installed-distribution",
+      "name": "idna",
+      "notice_files": [
+        "idna-3.18.dist-info/licenses/LICENSE.md"
+      ],
+      "version": "3.18"
+    },
+    {
+      "declared_license": "OSI Approved :: MIT License",
+      "homepage": "https://github.com/jaraco/jaraco.classes",
+      "license_classifiers": [
+        "OSI Approved :: MIT License"
+      ],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "jaraco.classes",
+      "notice_files": [
+        "jaraco.classes-3.4.0.dist-info/LICENSE"
+      ],
+      "version": "3.4.0"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Source, https://github.com/jaraco/jaraco.context",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "jaraco.context",
+      "notice_files": [
+        "jaraco_context-6.1.2.dist-info/licenses/LICENSE"
+      ],
+      "version": "6.1.2"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Source, https://github.com/jaraco/jaraco.functools",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "jaraco.functools",
+      "notice_files": [
+        "jaraco_functools-4.6.0.dist-info/licenses/LICENSE"
+      ],
+      "version": "4.6.0"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Documentation, https://jeepney.readthedocs.io/en/latest/",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "committed-exact-version",
+      "name": "jeepney",
+      "notice_files": [
+        "jeepney-0.9.0.dist-info/licenses/LICENSE"
+      ],
+      "version": "0.9.0"
+    },
+    {
+      "declared_license": "OSI Approved :: BSD License",
+      "homepage": "Changes, https://jinja.palletsprojects.com/changes/",
+      "license_classifiers": [
+        "OSI Approved :: BSD License"
+      ],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "Jinja2",
+      "notice_files": [
+        "jinja2-3.1.6.dist-info/licenses/LICENSE.txt"
+      ],
+      "version": "3.1.6"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Homepage, https://github.com/python-jsonschema/jsonschema",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "jsonschema",
+      "notice_files": [
+        "jsonschema-4.26.0.dist-info/licenses/COPYING"
+      ],
+      "version": "4.26.0"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Documentation, https://jsonschema-specifications.readthedocs.io/",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "jsonschema-specifications",
+      "notice_files": [
+        "jsonschema_specifications-2025.9.1.dist-info/licenses/COPYING"
+      ],
+      "version": "2025.9.1"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Source, https://github.com/jaraco/keyring",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "keyring",
+      "notice_files": [
+        "keyring-25.7.0.dist-info/licenses/LICENSE"
+      ],
+      "version": "25.7.0"
+    },
+    {
+      "declared_license": "OSI Approved :: MIT License",
+      "homepage": "Documentation, https://markdown-it-py.readthedocs.io",
+      "license_classifiers": [
+        "OSI Approved :: MIT License"
+      ],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "markdown-it-py",
+      "notice_files": [
+        "markdown_it_py-4.2.0.dist-info/licenses/LICENSE",
+        "markdown_it_py-4.2.0.dist-info/licenses/LICENSE.markdown-it"
+      ],
+      "version": "4.2.0"
+    },
+    {
+      "declared_license": "BSD-3-Clause",
+      "homepage": "Donate, https://palletsprojects.com/donate",
+      "license_classifiers": [],
+      "license_expression": "BSD-3-Clause",
+      "metadata_source": "installed-distribution",
+      "name": "MarkupSafe",
+      "notice_files": [
+        "markupsafe-3.0.3.dist-info/licenses/LICENSE.txt"
+      ],
+      "version": "3.0.3"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Homepage, https://modelcontextprotocol.io",
+      "license_classifiers": [
+        "OSI Approved :: MIT License"
+      ],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "mcp",
+      "notice_files": [
+        "mcp-1.29.0.dist-info/licenses/LICENSE"
+      ],
+      "version": "1.29.0"
+    },
+    {
+      "declared_license": "OSI Approved :: MIT License",
+      "homepage": "Documentation, https://mdit-py-plugins.readthedocs.io",
+      "license_classifiers": [
+        "OSI Approved :: MIT License"
+      ],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "mdit-py-plugins",
+      "notice_files": [
+        "mdit_py_plugins-0.6.1.dist-info/licenses/LICENSE",
+        "mdit_py_plugins/admon/LICENSE",
+        "mdit_py_plugins/container/LICENSE",
+        "mdit_py_plugins/deflist/LICENSE",
+        "mdit_py_plugins/footnote/LICENSE",
+        "mdit_py_plugins/front_matter/LICENSE",
+        "mdit_py_plugins/texmath/LICENSE"
+      ],
+      "version": "0.6.1"
+    },
+    {
+      "declared_license": "OSI Approved :: MIT License",
+      "homepage": "Homepage, https://github.com/executablebooks/mdurl",
+      "license_classifiers": [
+        "OSI Approved :: MIT License"
+      ],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "mdurl",
+      "notice_files": [
+        "mdurl-0.1.2.dist-info/LICENSE"
+      ],
+      "version": "0.1.2"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Documentation, https://more-itertools.readthedocs.io/en/stable/",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "more-itertools",
+      "notice_files": [
+        "more_itertools-11.1.0.dist-info/licenses/LICENSE"
+      ],
+      "version": "11.1.0"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Changelog, https://platformdirs.readthedocs.io/en/latest/changelog.html",
+      "license_classifiers": [
+        "OSI Approved :: MIT License"
+      ],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "platformdirs",
+      "notice_files": [
+        "platformdirs-4.11.1.dist-info/licenses/LICENSE"
+      ],
+      "version": "4.11.1"
+    },
+    {
+      "declared_license": "Apache-2.0",
+      "homepage": "homepage, https://github.com/Microsoft/playwright-python",
+      "license_classifiers": [],
+      "license_expression": "Apache-2.0",
+      "metadata_source": "installed-distribution",
+      "name": "playwright",
+      "notice_files": [
+        "playwright-1.62.0.dist-info/licenses/LICENSE",
+        "playwright/driver/LICENSE",
+        "playwright/driver/package/LICENSE",
+        "playwright/driver/package/NOTICE",
+        "playwright/driver/package/ThirdPartyNotices.txt",
+        "playwright/driver/package/lib/serverRegistry.js.LICENSE",
+        "playwright/driver/package/lib/utilsBundle.js.LICENSE",
+        "playwright/driver/package/lib/webp_codec.LICENSE"
+      ],
+      "version": "1.62.0"
+    },
+    {
+      "declared_license": "BSD-3-Clause",
+      "homepage": "Homepage, https://github.com/eliben/pycparser",
+      "license_classifiers": [],
+      "license_expression": "BSD-3-Clause",
+      "metadata_source": "installed-distribution",
+      "name": "pycparser",
+      "notice_files": [
+        "pycparser-3.0.dist-info/licenses/LICENSE"
+      ],
+      "version": "3.0"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Homepage, https://github.com/pydantic/pydantic",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "pydantic",
+      "notice_files": [
+        "pydantic-2.13.4.dist-info/licenses/LICENSE"
+      ],
+      "version": "2.13.4"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "https://github.com/pydantic/pydantic",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "pydantic_core",
+      "notice_files": [
+        "pydantic_core-2.46.4.dist-info/licenses/LICENSE"
+      ],
+      "version": "2.46.4"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Homepage, https://github.com/pydantic/pydantic-settings",
+      "license_classifiers": [
+        "OSI Approved :: MIT License"
+      ],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "pydantic-settings",
+      "notice_files": [
+        "pydantic_settings-2.15.0.dist-info/licenses/LICENSE"
+      ],
+      "version": "2.15.0"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Repository, https://github.com/jfhbrook/pyee",
+      "license_classifiers": [
+        "OSI Approved :: MIT License"
+      ],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "pyee",
+      "notice_files": [
+        "pyee-13.0.1.dist-info/licenses/LICENSE"
+      ],
+      "version": "13.0.1"
+    },
+    {
+      "declared_license": "BSD-2-Clause",
+      "homepage": "Homepage, https://pygments.org",
+      "license_classifiers": [],
+      "license_expression": "BSD-2-Clause",
+      "metadata_source": "installed-distribution",
+      "name": "Pygments",
+      "notice_files": [
+        "pygments-2.20.0.dist-info/licenses/LICENSE"
+      ],
+      "version": "2.20.0"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Homepage, https://github.com/jpadilla/pyjwt",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "PyJWT",
+      "notice_files": [
+        "pyjwt-2.13.0.dist-info/licenses/LICENSE"
+      ],
+      "version": "2.13.0"
+    },
+    {
+      "declared_license": "BSD-3-Clause",
+      "homepage": "Source, https://github.com/theskumar/python-dotenv",
+      "license_classifiers": [],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "python-dotenv",
+      "notice_files": [
+        "python_dotenv-1.2.2.dist-info/licenses/LICENSE"
+      ],
+      "version": "1.2.2"
+    },
+    {
+      "declared_license": "Apache-2.0",
+      "homepage": "Homepage, https://github.com/Kludex/python-multipart",
+      "license_classifiers": [
+        "OSI Approved :: Apache Software License"
+      ],
+      "license_expression": "Apache-2.0",
+      "metadata_source": "installed-distribution",
+      "name": "python-multipart",
+      "notice_files": [
+        "python_multipart-0.0.32.dist-info/licenses/LICENSE.txt"
+      ],
+      "version": "0.0.32"
+    },
+    {
+      "declared_license": "PSF",
+      "homepage": "Homepage, https://github.com/mhammond/pywin32",
+      "license_classifiers": [
+        "OSI Approved :: Python Software Foundation License"
+      ],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "pywin32",
+      "notice_files": [
+        "adodbapi/license.txt",
+        "pythonwin/License.txt",
+        "pythonwin/Scintilla-License.txt",
+        "pythonwin/pywin/idle/LICENSE.txt",
+        "pywin32-312.dist-info/licenses/adodbapi/license.txt",
+        "pywin32-312.dist-info/licenses/com/License.txt",
+        "pywin32-312.dist-info/licenses/com/win32comext/mapi/src/MAPIStubLibrary/LICENSE",
+        "pywin32-312.dist-info/licenses/pythonwin/License.txt",
+        "pywin32-312.dist-info/licenses/pythonwin/Scintilla/License.txt",
+        "pywin32-312.dist-info/licenses/pythonwin/pywin/idle/LICENSE.txt",
+        "pywin32-312.dist-info/licenses/win32/License.txt",
+        "win32/License.txt",
+        "win32com/License.txt",
+        "win32comext/License.txt",
+        "win32comext/mapi/MAPIStubLibrary-License.txt",
+        "win32comext/mapi/NOTICE.md"
+      ],
+      "version": "312"
+    },
+    {
+      "declared_license": "BSD-3-Clause",
+      "homepage": "https://github.com/enthought/pywin32-ctypes",
+      "license_classifiers": [],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "pywin32-ctypes",
+      "notice_files": [
+        "pywin32_ctypes-0.2.3.dist-info/LICENSE.txt"
+      ],
+      "version": "0.2.3"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "https://pyyaml.org/",
+      "license_classifiers": [
+        "OSI Approved :: MIT License"
+      ],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "PyYAML",
+      "notice_files": [
+        "pyyaml-6.0.3.dist-info/licenses/LICENSE"
+      ],
+      "version": "6.0.3"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Documentation, https://referencing.readthedocs.io/",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "referencing",
+      "notice_files": [
+        "referencing-0.37.0.dist-info/licenses/COPYING"
+      ],
+      "version": "0.37.0"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Documentation, https://rich.readthedocs.io/en/latest/",
+      "license_classifiers": [
+        "OSI Approved :: MIT License"
+      ],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "rich",
+      "notice_files": [
+        "rich-14.3.4.dist-info/licenses/LICENSE"
+      ],
+      "version": "14.3.4"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Documentation, https://rpds.readthedocs.io/",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "rpds-py",
+      "notice_files": [
+        "rpds_py-2026.6.3.dist-info/licenses/LICENSE"
+      ],
+      "version": "2026.6.3"
+    },
+    {
+      "declared_license": "BSD-3-Clause",
+      "homepage": "Homepage, https://github.com/mitya57/secretstorage",
+      "license_classifiers": [],
+      "license_expression": "BSD-3-Clause",
+      "metadata_source": "committed-exact-version",
+      "name": "SecretStorage",
+      "notice_files": [
+        "secretstorage-3.5.0.dist-info/licenses/LICENSE"
+      ],
+      "version": "3.5.0"
+    },
+    {
+      "declared_license": "ISC License",
+      "homepage": "https://github.com/sarugaku/shellingham",
+      "license_classifiers": [
+        "OSI Approved :: ISC License (ISCL)"
+      ],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "shellingham",
+      "notice_files": [
+        "shellingham-1.5.4.dist-info/LICENSE"
+      ],
+      "version": "1.5.4"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "https://www.sqlalchemy.org",
+      "license_classifiers": [],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "SQLAlchemy",
+      "notice_files": [
+        "sqlalchemy-2.0.51.dist-info/licenses/LICENSE"
+      ],
+      "version": "2.0.51"
+    },
+    {
+      "declared_license": "BSD-3-Clause",
+      "homepage": "Homepage, https://github.com/sysid/sse-starlette",
+      "license_classifiers": [],
+      "license_expression": "BSD-3-Clause",
+      "metadata_source": "installed-distribution",
+      "name": "sse-starlette",
+      "notice_files": [
+        "sse_starlette-3.4.8.dist-info/licenses/LICENSE"
+      ],
+      "version": "3.4.8"
+    },
+    {
+      "declared_license": "BSD-3-Clause",
+      "homepage": "Homepage, https://github.com/Kludex/starlette",
+      "license_classifiers": [],
+      "license_expression": "BSD-3-Clause",
+      "metadata_source": "installed-distribution",
+      "name": "starlette",
+      "notice_files": [
+        "starlette-1.5.0.dist-info/licenses/LICENSE.md"
+      ],
+      "version": "1.5.0"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Bug Tracker, https://github.com/Textualize/textual/issues",
+      "license_classifiers": [
+        "OSI Approved :: MIT License"
+      ],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "textual",
+      "notice_files": [
+        "textual-6.12.0.dist-info/LICENSE"
+      ],
+      "version": "6.12.0"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Homepage, https://github.com/fastapi/typer",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "typer",
+      "notice_files": [
+        "typer-0.27.1.dist-info/licenses/LICENSE",
+        "typer/_click/LICENSE.txt"
+      ],
+      "version": "0.27.1"
+    },
+    {
+      "declared_license": "PSF-2.0",
+      "homepage": "Bug Tracker, https://github.com/python/typing_extensions/issues",
+      "license_classifiers": [],
+      "license_expression": "PSF-2.0",
+      "metadata_source": "installed-distribution",
+      "name": "typing_extensions",
+      "notice_files": [
+        "typing_extensions-4.16.0.dist-info/licenses/LICENSE"
+      ],
+      "version": "4.16.0"
+    },
+    {
+      "declared_license": "MIT",
+      "homepage": "Homepage, https://github.com/pydantic/typing-inspection",
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "metadata_source": "installed-distribution",
+      "name": "typing-inspection",
+      "notice_files": [
+        "typing_inspection-0.4.2.dist-info/licenses/LICENSE"
+      ],
+      "version": "0.4.2"
+    },
+    {
+      "declared_license": "BSD-3-Clause",
+      "homepage": "Changelog, https://uvicorn.dev/release-notes",
+      "license_classifiers": [],
+      "license_expression": "BSD-3-Clause",
+      "metadata_source": "installed-distribution",
+      "name": "uvicorn",
+      "notice_files": [
+        "uvicorn-0.52.1.dist-info/licenses/LICENSE.md"
+      ],
+      "version": "0.52.1"
+    }
+  ],
+  "schema_version": 1,
+  "scope": "production"
+}

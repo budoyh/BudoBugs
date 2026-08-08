@@ -1,0 +1,23 @@
+title = "BudoBugs secret scanning"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Documented fixture aliases and redacted placeholders"
+paths = [
+  '''^\.budobugs/''',
+  '''^\.venv/''',
+  '''^node_modules/''',
+  '''(?:^|/)__pycache__/''',
+  '''^release/''',
+  '''fixtures/.*''',
+  '''docker/labs/crapi/jwks\.fixture\.json''',
+  '''\.env\.example''',
+  '''docs/.*''',
+]
+regexes = [
+  '''<REDACTED[^>]*>''',
+  '''fixture-(alice|bob|admin)-token''',
+  '''Z4G6z7pWQ92axYt5vLmE3sR8''',
+]

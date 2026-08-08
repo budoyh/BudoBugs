@@ -1,0 +1,23 @@
+{
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:tool-operator:input",
+    "type": "object",
+    "required": ["engagement_id", "tool_name", "purpose", "output_directory"],
+    "properties": {
+      "engagement_id": {"type": "string", "minLength": 3},
+      "tool_name": {"type": "string", "minLength": 1},
+      "purpose": {"type": "string", "minLength": 3},
+      "output_directory": {"type": "string", "minLength": 1, "not": {"pattern": "(^|[/\\\\])\\.\\.([/\\\\]|$)"}}
+    },
+    "additionalProperties": false
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:tool-operator:output",
+    "type": "object",
+    "required": ["receipt"],
+    "properties": {"receipt": {"const": true}},
+    "additionalProperties": false
+  }
+}

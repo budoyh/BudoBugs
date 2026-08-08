@@ -1,0 +1,11 @@
+{
+  "name": "@budobugs/caido-integration",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@caido/sdk-client": "0.5.0"
+  }
+}

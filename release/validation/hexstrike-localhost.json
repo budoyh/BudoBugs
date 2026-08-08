@@ -1,0 +1,35 @@
+{
+  "receipt_id": "hexstrike-9b45c78c-6602-4b96-8545-ff903896ddb3",
+  "framework": "hexstrike-ai",
+  "commit": "d689933ff579d839c676c82b231f8e98326c5f04",
+  "mode": "lab",
+  "target": "http://127.0.0.1:8765/healthz",
+  "operation": "intelligence/analyze-target",
+  "arbitrary_command_endpoint_used": false,
+  "result": {
+    "success": true,
+    "target_profile": {
+      "attack_surface_score": 7.5,
+      "cloud_provider": null,
+      "cms_type": null,
+      "confidence_score": 0.7,
+      "endpoints": [],
+      "ip_addresses": [
+        "127.0.0.1"
+      ],
+      "open_ports": [],
+      "risk_level": "high",
+      "security_headers": {},
+      "services": {},
+      "ssl_info": {},
+      "subdomains": [],
+      "target": "http://127.0.0.1:8765/healthz",
+      "target_type": "web_application",
+      "technologies": [
+        "unknown"
+      ]
+    },
+    "timestamp": "2026-08-09T02:25:13.723786"
+  },
+  "completed_at": "2026-08-08T18:25:13.724786Z"
+}

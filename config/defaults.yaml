@@ -1,0 +1,22 @@
+schema_version: 1
+storage:
+  home: .budobugs
+  database: state/budobugs.sqlite3
+  events: events
+  artifacts: artifacts
+execution:
+  default_timeout_seconds: 120
+  max_concurrency: 4
+  retries: 1
+  output_limit_bytes: 10485760
+redaction:
+  preserve_header_names: true
+  replacement: "<REDACTED>"
+cost:
+  engagement_token_budget: 2000000
+  phase_token_budget: 250000
+  route: quality-first
+lab:
+  compose_file: docker/compose.yaml
+  project_name: budobugs-lab
+  bind_host: 127.0.0.1

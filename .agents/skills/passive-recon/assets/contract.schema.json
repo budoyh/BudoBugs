@@ -1,0 +1,24 @@
+{
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:passive-recon:input",
+    "type": "object",
+    "required": ["engagement_id", "root_targets"],
+    "properties": {
+      "engagement_id": {"type": "string", "minLength": 3},
+      "root_targets": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+    },
+    "additionalProperties": false
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:passive-recon:output",
+    "type": "object",
+    "required": ["assets", "network_boundary"],
+    "properties": {
+      "assets": {"type": "array"},
+      "network_boundary": {"type": "string", "minLength": 1}
+    },
+    "additionalProperties": false
+  }
+}

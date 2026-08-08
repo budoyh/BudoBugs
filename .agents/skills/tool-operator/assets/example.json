@@ -1,0 +1,9 @@
+{
+  "engagement_id": "lab-example",
+  "tool_name": "ripgrep",
+  "purpose": "search authorized local fixture",
+  "output_directory": "run-001/tools/rg",
+  "expected_output": {
+    "receipt": true
+  }
+}

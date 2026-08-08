@@ -1,0 +1,55 @@
+# Python and tools
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Node and Playwright
+node_modules/
+.pnpm-store/
+.playwright/
+playwright-report/
+test-results/
+
+# Runtime state and sensitive research data
+/engagements/*
+!engagements/.gitkeep
+/runs/*
+!runs/.gitkeep
+/findings/*
+!findings/.gitkeep
+/secrets/
+/traffic/
+/browser-data/
+/downloads/
+*.har
+*.trace.zip
+*.pcap
+
+# Environment and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+auth.json
+
+# Local tool installations and receipts
+.tools/
+.budobugs/
+install-receipts/
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

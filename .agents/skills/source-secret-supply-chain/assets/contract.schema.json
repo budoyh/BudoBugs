@@ -1,0 +1,24 @@
+{
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:source-secret-supply-chain:input",
+    "type": "object",
+    "required": ["engagement_id", "source_root"],
+    "properties": {
+      "engagement_id": {"type": "string", "minLength": 3},
+      "source_root": {"type": "string", "minLength": 1}
+    },
+    "additionalProperties": false
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:source-secret-supply-chain:output",
+    "type": "object",
+    "required": ["signals", "secret_values_in_output"],
+    "properties": {
+      "signals": {"type": "array"},
+      "secret_values_in_output": {"const": 0}
+    },
+    "additionalProperties": false
+  }
+}

@@ -1,0 +1,5 @@
+# Agent Skills discovery metadata.
+interface:
+  display_name: "tool-operator"
+  short_description: "BudoBugs authorized security workflow"
+  default_prompt: "Use $tool-operator for this authorized BudoBugs task."

@@ -1,0 +1,25 @@
+{
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:butian-report:input",
+    "type": "object",
+    "required": ["finding_id", "status", "critic_verdict"],
+    "properties": {
+      "finding_id": {"type": "string", "minLength": 3},
+      "status": {"const": "READY_FOR_HUMAN_REVIEW"},
+      "critic_verdict": {"const": "CONFIRMED"}
+    },
+    "additionalProperties": false
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:budobugs:skill:butian-report:output",
+    "type": "object",
+    "required": ["formats", "automatic_submission"],
+    "properties": {
+      "formats": {"type": "array", "contains": {"const": "markdown"}, "minItems": 2},
+      "automatic_submission": {"const": false}
+    },
+    "additionalProperties": false
+  }
+}

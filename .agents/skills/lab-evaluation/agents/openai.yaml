@@ -1,0 +1,5 @@
+# Agent Skills discovery metadata.
+interface:
+  display_name: "lab-evaluation"
+  short_description: "BudoBugs authorized security workflow"
+  default_prompt: "Use $lab-evaluation for this authorized BudoBugs task."

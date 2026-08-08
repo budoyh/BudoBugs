@@ -1,0 +1,11 @@
+schema_version: 1
+registry_directory: tools/registry
+lock_file: tools/lock/tool-lock.yaml
+binary_directory: ~/.local/share/budobugs/bin
+profiles:
+  core:
+    purpose: deterministic reconnaissance, browser, source and supply-chain checks
+  extended:
+    purpose: proxy ecosystems, OOB client and SBOM analysis
+  lab-ai:
+    purpose: isolated third-party agent frameworks for local labs only

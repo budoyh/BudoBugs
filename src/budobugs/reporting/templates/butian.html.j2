@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ finding.title }}</title>
+  <style>
+    body { font-family: system-ui, "Microsoft YaHei", sans-serif; max-width: 960px; margin: 2rem auto; padding: 0 1rem; line-height: 1.65; color: #17212b; }
+    h1, h2 { color: #0b4f6c; }
+    code { background: #eef3f6; padding: .1rem .3rem; overflow-wrap: anywhere; }
+    .summary { border-left: .35rem solid #0b4f6c; padding: .75rem 1rem; background: #f4f8fa; }
+    table { border-collapse: collapse; width: 100%; }
+    td, th { border: 1px solid #ccd6dd; padding: .45rem; text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>{{ finding.title }}</h1>
+  <p class="summary">攻击者能够{{ finding.capability_delta }}。</p>
+  <h2>授权目标与漏洞</h2>
+  <table>
+    <tr><th>厂商</th><td>{{ vendor }}</td></tr>
+    <tr><th>SRC/任务平台</th><td>{{ engagement_platform }}</td></tr>
+    <tr><th>报告模板</th><td>{{ platform }}</td></tr>
+    <tr><th>目标</th><td><code>{{ finding.affected_asset }}</code></td></tr>
+    <tr><th>功能</th><td>{{ finding.affected_feature }}</td></tr>
+    <tr><th>类型</th><td>{{ finding.vulnerability_class }}</td></tr>
+    <tr><th>严重度</th><td>{{ finding.severity }}</td></tr>
+  </table>
+  <h2>安全不变量</h2><p>{{ finding.security_invariant }}</p>
+  <h2>复现步骤</h2><ol>{% for step in finding.reproduction_steps %}<li>{{ step }}</li>{% endfor %}</ol>
+  <h2>原始请求</h2>
+  {% for item in request_evidence %}<h3><code>{{ item.reference }}</code></h3><pre><code>{{ item.content }}</code></pre>{% endfor %}
+  <h2>原始响应</h2>
+  {% for item in response_evidence %}<h3><code>{{ item.reference }}</code></h3><pre><code>{{ item.content }}</code></pre>{% endfor %}
+  <h2>对照</h2><p><strong>正常：</strong>{{ finding.normal_control }}</p><p><strong>负对照：</strong>{{ finding.negative_control }}</p>
+  <h2>能力与影响</h2><p><strong>测试前：</strong>{{ finding.capability_before }}</p><p><strong>测试后：</strong>{{ finding.capability_after }}</p><p><strong>能力增量：</strong>{{ finding.capability_delta }}</p><p>{{ finding.impact }}</p><p><strong>保守范围：</strong>{{ finding.data_exposure_scope }}</p>
+  <h2>关键截图</h2>
+  {% if screenshots %}{% for screenshot in screenshots %}<figure><img src="../{{ screenshot }}" alt="关键复现截图" style="max-width:100%"><figcaption><code>{{ screenshot }}</code></figcaption></figure>{% endfor %}{% else %}<p>未声明关键截图；请复核请求、响应和 trace。</p>{% endif %}
+  <h2>清理</h2><p>{{ finding.cleanup_status }}</p>
+  <h2>修复建议</h2><p>在服务端按认证主体、租户和对象所有权执行逐对象授权，并加入跨账号回归测试。</p>
+  <h2>人工复核清单</h2><ul><li>授权目标和测试账号准确</li><li>请求与响应可重复</li><li>正常/负对照仍成立</li><li>影响、CVSS 和重复风险未夸大</li><li>秘密和个人数据已脱敏</li><li>最终提交由人工完成</li></ul>
+</body>
+</html>

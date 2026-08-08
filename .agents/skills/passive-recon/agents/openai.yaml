@@ -1,0 +1,5 @@
+# Agent Skills discovery metadata.
+interface:
+  display_name: "passive-recon"
+  short_description: "BudoBugs authorized security workflow"
+  default_prompt: "Use $passive-recon for this authorized BudoBugs task."

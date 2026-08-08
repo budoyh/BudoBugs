@@ -1,0 +1,19 @@
+schema_version: 1
+profiles:
+  quality-first:
+    coordinator: [gpt-5.6-sol, gpt-5.6-terra]
+    critical_judgment: [gpt-5.6-sol, gpt-5.6-terra]
+    analysis: [gpt-5.6-terra, gpt-5.6-sol]
+    batch: [gpt-5.6-luna, gpt-5.6-terra]
+    phase_token_budget: 250000
+  economy:
+    coordinator: [gpt-5.6-terra, gpt-5.6-sol]
+    critical_judgment: [gpt-5.6-sol, gpt-5.6-terra]
+    analysis: [gpt-5.6-terra, gpt-5.6-luna]
+    batch: [gpt-5.6-luna, gpt-5.6-terra]
+    phase_token_budget: 100000
+reasoning:
+  coordinator: high
+  critical_judgment: high
+  analysis: high
+  batch: medium

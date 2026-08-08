@@ -1,0 +1,5 @@
+# Agent Skills discovery metadata.
+interface:
+  display_name: "web-attack-surface"
+  short_description: "BudoBugs authorized security workflow"
+  default_prompt: "Use $web-attack-surface for this authorized BudoBugs task."
