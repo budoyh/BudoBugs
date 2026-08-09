@@ -11,7 +11,7 @@
     "grype docker-archive:.budobugs/fixture-release.tar --vex release/scans/fixture.openvex.json --fail-on high --output json --file release/scans/grype-fixture.json",
     "python scripts/generate_license_inventory.py"
   ],
-  "generated_at": "2026-08-09T00:57:39.823017+00:00",
+  "generated_at": "2026-08-09T01:18:50.916872+00:00",
   "materials": {
     ".gitleaks.toml": "8da5e9474dedf10e298cc46709edc749aa2b7a9590b0862211c1996df242666a",
     "config/semgrep.yml": "0e339e360c8606f8843ead81050da90697813db7cea723b658ac851d78731d0f",
@@ -23,16 +23,16 @@
     "release/licenses/node-production.json": "18ca2c532da3ea7648c059bdb876216f3a59c9277317b58b91e40915ee8e82af",
     "release/licenses/python-production.json": "d6e6d1d072b67987259560586a96693a2ff1ebb0667551f07e3df4efc8a23852",
     "release/licenses/summary.json": "a8512206629a57925788687f8208ae2f2509c1840671b4ae7486ea1fa5240c00",
-    "release/sbom/source.cdx.json": "ac3a8afaeaed2fa0cb13f47be7882a68bb9c1919364e5d6e060c57a1d9b96b7d",
+    "release/sbom/source.cdx.json": "2a30073b27cc6398ecc51ecabe6f1ac3da865fa70a8a8bf71dd7390ab8397869",
     "release/scans/fixture-vex-review.json": "564be500a5f62ce787512c6e37ef2b3088077c32bc5e75c2ef8dee8e0ab160cc",
     "release/scans/fixture.openvex.json": "5f029d9d134819d1a6c0160bec3c6be956cc48d14dd82b38d7a6323e988761e0",
     "release/scans/gitleaks.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
     "release/scans/grype-fixture-raw.json": "568a6c8a5d5d4b0926629adf958d65113d2cb33378ad856709c953f5830357f2",
     "release/scans/grype-fixture.json": "4dd2368851cc8fa63207f09d2e04fdd06af37c77c5fbd2fc4b185d04d8db285f",
     "release/scans/osv.json": "54345d5194d238b6017d0f3181f392109ce35023cc6b4bdfa8c134943dcb578e",
-    "release/scans/semgrep.json": "9eff6cf21a880bbf12365d921b6ff4d071f5623d524cf59512c1d3f28894db52",
+    "release/scans/semgrep.json": "f0ff5d90904f331d518a8011fa6df7c62651db9812dcf31fb8ba34c2502a329e",
     "release/scans/trivy-fixture.json": "0de5770b7b6b7fda105b20b7cd5a826a798340cbf23d24564ad4e823aeb815c5",
-    "release/scans/trivy-fs.json": "8c231e21d0cbeb9a13b6ed6a4d1bb42ae500e5600aa6644339450dcb67945ae6",
+    "release/scans/trivy-fs.json": "a14048ed57d98e3a68b5564d4fa6b3b249bea5bee59d7d7196b79362ab84b362",
     "release/validation/hexstrike-localhost.json": "4f838e61118e90322651489460406a03da44ed8ddcdb02963572536e6180cf72",
     "tools/lock/tool-lock.yaml": "9a71d3012a9b09f5da6aafb0e49875c5f8a4a7c2ff63718eabc7e2be295512ab",
     "uv.lock": "d451f476567fc0e457edb2cd13a154fb642c6117798ae5b5d62b7a63b1ba3c09"

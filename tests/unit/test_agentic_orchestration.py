@@ -69,7 +69,7 @@ def test_action_contract_rejects_credentials_shapes_and_unbounded_mutation() -> 
         )
 
 
-def test_codex_runner_resolves_windows_shell_shim_to_native_executable(
+def test_codex_runner_windows_resolver_replaces_shell_shim_with_native_executable(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -77,12 +77,11 @@ def test_codex_runner_resolves_windows_shell_shim_to_native_executable(
         "budobugs.agents.runner.shutil.which",
         lambda name: "C:/native/codex.exe" if name == "codex.exe" else None,
     )
-    runner = CodexTaskRunner(
+    executable = CodexTaskRunner._resolve_windows_executable(
+        "C:/project/node_modules/.bin/codex.cmd",
         tmp_path,
-        executable="C:/project/node_modules/.bin/codex.cmd",
-        working_directory=tmp_path,
     )
-    assert runner.executable == "C:/native/codex.exe"
+    assert executable == "C:/native/codex.exe"
 
 
 def test_skill_runtime_and_catalog_bind_real_skills_to_all_required_specialists(

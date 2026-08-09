@@ -49,6 +49,12 @@ class CodexTaskRunner:
 
         if os.name != "nt":
             return executable
+        return CodexTaskRunner._resolve_windows_executable(executable, working_directory)
+
+    @staticmethod
+    def _resolve_windows_executable(executable: str, working_directory: Path) -> str:
+        """Resolve the Windows shim without depending on the host running the test."""
+
         path = Path(executable)
         name = path.stem if path.suffix else path.name
         if name.lower() == "codex":
