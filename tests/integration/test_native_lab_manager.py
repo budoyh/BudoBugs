@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import socket
+import sys
 from pathlib import Path
 
 from budobugs.labs.manager import LabManager
@@ -25,9 +26,12 @@ def test_native_fixture_tracks_and_reaps_the_exact_process_tree(repository_root:
         assert set(state["owned_pids"]) == owned
         snapshot = manager._process_snapshot()
         assert all(all(token.lower() in snapshot[pid][1] for token in required_tokens) for pid in owned)
-        listeners = manager._listener_process_ids(port)
-        assert listeners
-        assert listeners <= owned
+        if sys.platform == "win32":
+            listeners = manager._listener_process_ids(port)
+            assert listeners
+            assert listeners <= owned
+        else:
+            assert manager._http_health(port, "/healthz")
 
         stopped = manager.down()
         assert not stopped.running

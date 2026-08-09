@@ -1,6 +1,6 @@
 {
   "evidence_boundary": "Counts are recomputed from the adjacent raw JSON artifacts; release verification independently recomputes them and fails on scanner errors, secrets, unexplained high/critical findings, or any mismatch across the unfiltered Grype report, source-bound VEX review, and final report.",
-  "generated_at": "2026-08-09T11:11:11.828858+00:00",
+  "generated_at": "2026-08-09T11:30:56.100432+00:00",
   "license_inventory": {
     "node": {
       "packages": 16,

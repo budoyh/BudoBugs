@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-SNAPSHOT_SCHEMA_VERSION = 1
+SNAPSHOT_SCHEMA_VERSION = 2
 EXCLUDED_TOP_LEVEL_DIRECTORIES = frozenset(
     {
         ".budobugs",
@@ -81,14 +81,27 @@ def included_source_paths(root: Path) -> list[Path]:
     return sorted(paths, key=lambda path: path.as_posix())
 
 
+def _portable_content(path: Path) -> bytes:
+    """Normalize checkout CRLF in NUL-free UTF-8 content; preserve other bytes."""
+
+    content = path.read_bytes()
+    if b"\x00" in content:
+        return content
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        return content
+    return text.replace("\r\n", "\n").encode("utf-8")
+
+
 def source_snapshot(root: Path) -> dict[str, Any]:
-    """Build a portable identity from normalized paths and exact file bytes."""
+    """Build a portable identity from paths and checkout-stable file content."""
 
     paths = included_source_paths(root)
     digest = hashlib.sha256()
     for relative in paths:
         encoded_path = relative.as_posix().encode("utf-8")
-        content = (root / relative).read_bytes()
+        content = _portable_content(root / relative)
         digest.update(len(encoded_path).to_bytes(8, "big"))
         digest.update(encoded_path)
         digest.update(len(content).to_bytes(8, "big"))

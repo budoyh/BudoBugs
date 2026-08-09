@@ -145,6 +145,27 @@ def test_release_provenance_rejects_changed_source_snapshot(tmp_path: Path, monk
         verify_release.validate_source_snapshot(provenance)
 
 
+def test_release_snapshot_normalizes_text_newlines_but_not_binary_bytes(tmp_path: Path) -> None:
+    source = tmp_path / "src" / "budobugs"
+    source.mkdir(parents=True)
+    text_file = source / "feature.py"
+    text_file.write_bytes(b"VALUE = 1\nNEXT = 2\n")
+    lf_snapshot = generate_release_metadata.source_snapshot(tmp_path)
+
+    text_file.write_bytes(b"VALUE = 1\r\nNEXT = 2\r\n")
+    crlf_snapshot = generate_release_metadata.source_snapshot(tmp_path)
+
+    assert lf_snapshot == crlf_snapshot
+    assert lf_snapshot["schema_version"] == 2
+
+    binary_file = source / "payload.bin"
+    binary_file.write_bytes(b"prefix\x00line\r\n")
+    first_binary_snapshot = generate_release_metadata.source_snapshot(tmp_path)
+    binary_file.write_bytes(b"prefix\x00line\n")
+
+    assert generate_release_metadata.source_snapshot(tmp_path)["sha256"] != first_binary_snapshot["sha256"]
+
+
 def test_release_provenance_snapshot_excludes_its_own_artifacts(tmp_path: Path, monkeypatch) -> None:
     source = tmp_path / "src" / "budobugs"
     source.mkdir(parents=True)

@@ -3,16 +3,16 @@
   "Trivy": {
     "Version": "0.73.0"
   },
-  "ReportID": "019fe637-ca47-7013-a728-7c517fe229ab",
-  "CreatedAt": "2026-08-09T19:10:43.783005+08:00",
-  "ArtifactID": "sha256:a6067079b85d93657f9df272a0fa37bd85988eb5bfccee42280e5546efb50353",
+  "ReportID": "019fe649-d6d6-7d2c-9958-ddb2dbb70a87",
+  "CreatedAt": "2026-08-09T19:30:26.6468634+08:00",
+  "ArtifactID": "sha256:607b827baeb4be9bed3efe59fe6d396842d2bfd710d692675427c9ac219e7fc1",
   "ArtifactName": ".",
   "ArtifactType": "repository",
   "Metadata": {
     "RepoURL": "https://github.com/budoyh/BudoBugs.git",
     "Branch": "main",
-    "Commit": "189780ea669d829bd0891aad06e7408da6d11f2a",
-    "CommitMsg": "Make Codex runner resolution portable",
+    "Commit": "93b33fb6a85e812d03f25cd6510ae75ba6a7d42a",
+    "CommitMsg": "Implement autonomous engagement agent loop",
     "Author": "budoyh \u003cbudo0422@outlook.com\u003e",
     "Committer": "budoyh \u003cbudo0422@outlook.com\u003e"
   },
@@ -188,21 +188,21 @@
           "Name": "@caido/sdk-client",
           "Identifier": {
             "PURL": "pkg:npm/%40caido/sdk-client@0.5.0",
-            "UID": "98fa289c2685b95b"
+            "UID": "dc20c0fbf6c7a088"
           },
           "Version": "0.5.0",
           "Relationship": "direct",
           "DependsOn": [
-            "@urql/exchange-auth@3.0.0(@urql/core@6.0.3(graphql@16.14.2))",
-            "graphql-ws@6.2.1(graphql@16.14.2)",
             "semver@7.8.5",
+            "@urql/exchange-auth@3.0.0(@urql/core@6.0.3(graphql@16.14.2))",
+            "@caido/sdk-shared@0.2.2",
             "@caido/server-auth@0.2.0",
-            "@urql/core@6.0.3(graphql@16.14.2)",
-            "@graphql-typed-document-node/core@3.2.0(graphql@16.14.2)",
-            "graphql@16.14.2",
             "wonka@6.3.6",
+            "@graphql-typed-document-node/core@3.2.0(graphql@16.14.2)",
             "zod@4.4.3",
-            "@caido/sdk-shared@0.2.2"
+            "@urql/core@6.0.3(graphql@16.14.2)",
+            "graphql@16.14.2",
+            "graphql-ws@6.2.1(graphql@16.14.2)"
           ],
           "AnalyzedBy": "pnpm"
         },

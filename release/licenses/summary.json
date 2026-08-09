@@ -1,6 +1,6 @@
 {
   "boundary": "Production package metadata only. External tools, lab images, downloaded Chromium, and scanner databases remain governed by THIRD_PARTY_NOTICES.md and docs/research/LICENSE_MATRIX.md.",
-  "generated_at": "2026-08-09T10:58:34.009615+00:00",
+  "generated_at": "2026-08-09T11:27:59.181346+00:00",
   "inventories": {
     "node": {
       "packages": 16,

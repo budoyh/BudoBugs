@@ -711,6 +711,8 @@ class LabManager:
     def _windows_terminate_process(pid: int) -> bool:
         """Terminate one exact PID through the Win32 process handle API."""
 
+        if sys.platform != "win32":
+            return False
         from ctypes import wintypes
 
         process_terminate = 0x0001
