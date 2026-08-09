@@ -26,6 +26,8 @@ _FLOW_WORDS = {
     "expire",
 }
 _CLIENT_WORDS = {"preview", "render", "search", "message", "redirect", "callback", "template"}
+_CORS_WORDS = {"cors", "origin", "cross-origin"}
+_CSRF_WORDS = {"csrf", "xsrf"}
 
 
 def _contains(material: str, words: set[str]) -> bool:
@@ -49,6 +51,9 @@ def _score(
     request_cost: float = 1.0,
     token_cost: float = 1.0,
     research_cost: float = 1.0,
+    root_cause_hint: str | None = None,
+    feature: str | None = None,
+    vulnerability_class: str | None = None,
 ) -> float:
     return BountyPrioritizer.score(
         candidate_id,
@@ -62,6 +67,9 @@ def _score(
         token_cost=token_cost,
         research_cost=research_cost,
         knowledge=knowledge,
+        vulnerability_class=vulnerability_class or category,
+        root_cause_key=root_cause_hint,
+        feature=feature,
     ).score
 
 
@@ -130,6 +138,9 @@ def generate_hypotheses(
             request_cost=request_cost,
             token_cost=token_cost,
             research_cost=research_cost,
+            root_cause_hint=root_cause_hint,
+            feature=family_id,
+            vulnerability_class=vulnerability_class,
         )
         invariants.append(invariant)
         hypotheses.append(
@@ -371,6 +382,74 @@ def generate_hypotheses(
                 uniqueness=1.35,
                 request_cost=1.3,
                 research_cost=1.4,
+            )
+
+        if family.method in {"POST", "PUT", "PATCH", "DELETE"} and _contains(material, _CORS_WORDS):
+            add(
+                family_id=family.family_id,
+                title=f"Credentialed CORS origin candidate on {family.path_template}",
+                vulnerability_class="cors-misconfiguration",
+                statement=(
+                    "Credentialed cross-origin responses must emit ACAO only for an exact trusted Origin and "
+                    "must not authorize an untrusted Origin to read or trigger protected actions."
+                ),
+                protected_asset=f"self-owned state changed by {family.path_template}",
+                trust_boundary="trusted Origin versus untrusted Origin with an authenticated test account",
+                enforcement_point=f"CORS Origin policy on {family.method} {family.path_template}",
+                violation_signal=(
+                    "an untrusted Origin receives matching ACAO/ACAC headers and repeats a self-owned "
+                    "state-changing capability"
+                ),
+                rationale="Observed CORS-labelled mutation requires an exact header and state-effect experiment.",
+                prerequisites=["self-owned account", "reversible self-owned state", "trusted and test Origins"],
+                change="change only Origin from the declared trusted Origin to the test untrusted Origin",
+                control=(
+                    "trusted Origin baseline, exact ACAO/ACAC comparison, repeated untrusted Origin, "
+                    "secure deny, cleanup"
+                ),
+                category="client-side",
+                validator_id="cors-credentialed-origin",
+                skill_name="client-file-workflows",
+                protocol="rest",
+                parameter_location="header",
+                root_cause_hint=f"cors-origin-policy:{family.path_template}",
+                reward=1700,
+                probability=0.46,
+                impact=1.25,
+                uniqueness=1.15,
+                request_cost=1.2,
+            )
+
+        if family.method in {"POST", "PUT", "PATCH", "DELETE"} and _contains(material, _CSRF_WORDS):
+            add(
+                family_id=family.family_id,
+                title=f"CSRF protection candidate on {family.path_template}",
+                vulnerability_class="csrf-protection-bypass",
+                statement=(
+                    "Credentialed state changes must require a valid session-bound CSRF token and trusted Origin."
+                ),
+                protected_asset=f"self-owned state changed by {family.path_template}",
+                trust_boundary="trusted token/origin versus tokenless untrusted Origin",
+                enforcement_point=f"CSRF middleware on {family.method} {family.path_template}",
+                violation_signal="a tokenless untrusted Origin repeats a state change on a self-owned object",
+                rationale=(
+                    "Observed CSRF-labelled mutation merits a controlled token/origin differential, "
+                    "not a reflection claim."
+                ),
+                prerequisites=["self-owned account", "reversible self-owned state", "declared valid CSRF token"],
+                change="remove only the CSRF token and replace trusted Origin with the test untrusted Origin",
+                control="token baseline, repeated tokenless request, secure rejection, observable effect, cleanup",
+                category="client-side",
+                validator_id="csrf-token-bypass",
+                skill_name="client-file-workflows",
+                protocol="rest",
+                parameter_location="header",
+                root_cause_hint=f"csrf-enforcement:{family.path_template}",
+                reward=1600,
+                probability=0.48,
+                impact=1.2,
+                uniqueness=1.1,
+                request_cost=1.2,
             )
 
         if family.method == "GET" and _contains(material, _CLIENT_WORDS):

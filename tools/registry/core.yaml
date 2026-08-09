@@ -44,6 +44,32 @@ tools:
     mutation_level: low
     healthcheck: [-version]
     target_argument: -u
+  - name: budo-http-probe
+    category: active-recon
+    source: https://github.com/budoyh/BudoBugs
+    version: 2026.8.8
+    commit: null
+    license: Apache-2.0
+    install_method: bundled
+    profile: core
+    executable: python
+    container_image: null
+    supported_platforms: [windows, linux, wsl]
+    required_secrets: []
+    network_behavior: [performs one GET only to the engagement-injected URL and does not follow redirects]
+    mutation_level: none
+    resource_risk: low
+    supported_modes: [lab, program]
+    timeout: 20
+    concurrency: 4
+    parser: json
+    healthcheck: [--help]
+    output_schema: schemas/http_probe.schema.json
+    redaction_rules: [tokens, emails]
+    target_argument: --url
+    retry_count: 0
+    fixed_arguments: [-m, budobugs.tools.http_probe]
+    allowed_argument_patterns: []
   - <<: *go_tool
     name: katana
     category: active-recon
@@ -157,7 +183,7 @@ tools:
     license: LGPL-2.1-or-later
     install_method: python
     executable: semgrep
-    network_behavior: [optional rule download]
+    network_behavior: [none]
     healthcheck: [--version]
     target_argument: ""
     fixed_arguments: [scan, --config, "{workspace_root}/config/semgrep.yml", --json, --output, "{output_dir}/semgrep.json", --metrics, "off"]

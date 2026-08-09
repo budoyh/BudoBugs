@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import json
 import sys
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import pytest
 from tests.conftest import make_exchange
 
 from budobugs.core.policy import PolicyDenied
-from budobugs.models import Engagement, EngagementMode, ToolDefinition, ToolRequest
+from budobugs.hypotheses.generator import generate_hypotheses
+from budobugs.models import Engagement, EngagementMode, Target, ToolDefinition, ToolRequest
 from budobugs.tools.registry import ToolRegistry
 from budobugs.tools.wrapper import ToolExecutionError, ToolRunner
 from budobugs.traffic.modeler import build_traffic_model
@@ -76,6 +80,33 @@ def test_traffic_model_builds_roles_tenants_transitions_schemas_and_frontend_lin
     assert model.discarded_static_exchange_ids == ["exchange-static"]
     graphql_family = next(item for item in model.endpoint_families if item.path_template == "/graphql")
     assert {item.location for item in model.parameters[graphql_family.family_id]} >= {"graphql"}
+
+
+def test_hypotheses_make_cors_and_csrf_mutations_distinct_validation_candidates() -> None:
+    cors = make_exchange(
+        exchange_id="exchange-cors",
+        url="http://127.0.0.1:8765/api/cors/transfer",
+        response='{"cors_transfer_count":1}',
+    ).model_copy(update={"method": "POST", "request_headers": {"Origin": "https://trusted.fixture.invalid"}})
+    csrf = make_exchange(
+        exchange_id="exchange-csrf",
+        url="http://127.0.0.1:8765/api/csrf/transfer",
+        response='{"csrf_transfer_count":1}',
+    ).model_copy(update={"method": "POST", "request_headers": {"X-Fixture-Csrf": "csrf-alice"}})
+    _invariants, hypotheses = generate_hypotheses("lab-fixture-001", build_traffic_model([cors, csrf]))
+    by_class = {item.vulnerability_class: item for item in hypotheses}
+    assert by_class["cors-misconfiguration"].validator_id == "cors-credentialed-origin"
+    assert by_class["csrf-protection-bypass"].validator_id == "csrf-token-bypass"
+
+
+def test_core_registry_declares_bundled_http_probe(repository_root: Path) -> None:
+    definition = ToolRegistry.load(repository_root / "tools" / "registry").get("budo-http-probe")
+    assert definition.executable == "python"
+    assert definition.fixed_arguments == ["-m", "budobugs.tools.http_probe"]
+    assert definition.target_argument == "--url"
+    assert definition.install_method == "bundled"
+    assert definition.license == "Apache-2.0"
+    assert {"windows", "linux", "wsl"}.issubset(definition.supported_platforms)
 
 
 def _definition(
@@ -180,3 +211,50 @@ async def test_tool_runner_enforces_target_scope_before_execution(tmp_path: Path
     )
     with pytest.raises(PolicyDenied):
         await runner.run(request, lab_engagement)
+
+
+@pytest.mark.asyncio
+async def test_tool_runner_runs_bundled_http_probe_from_artifact_cwd(
+    tmp_path: Path, lab_engagement: Engagement
+) -> None:
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:  # noqa: N802
+            self.send_response(302)
+            self.send_header("Location", "/next")
+            self.send_header("Authorization", "Bearer secret-value-should-not-leak")
+            self.end_headers()
+
+        def log_message(self, _format: str, *_args: object) -> None:
+            return
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        engagement = lab_engagement.model_copy(
+            update={"root_targets": [Target(uri=f"http://127.0.0.1:{server.server_port}", label="probe")]}
+        )
+        registry = ToolRegistry.load(Path(__file__).parents[2] / "tools" / "registry")
+        runner = ToolRunner(registry, tmp_path, workspace_root=Path(__file__).parents[2])
+        receipt = await runner.run(
+            ToolRequest(
+                invocation_id="invoke-bundled-probe",
+                run_id="run-001",
+                engagement_id=engagement.engagement_id,
+                tool_name="budo-http-probe",
+                target=f"http://127.0.0.1:{server.server_port}/start",
+                purpose="probe authorized local fixture root",
+                output_directory="probe-output",
+            ),
+            engagement,
+        )
+    finally:
+        server.shutdown()
+        thread.join()
+        server.server_close()
+    payload = json.loads((tmp_path / receipt.stdout_artifact).read_text(encoding="utf-8"))
+    assert receipt.status == "completed"
+    assert payload["status_code"] == 302
+    assert payload["redirect_not_followed"] is True
+    assert payload["headers"]["location"] == "/next"
+    assert "authorization" not in payload["headers"]

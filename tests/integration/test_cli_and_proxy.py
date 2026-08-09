@@ -8,7 +8,17 @@ from typer.testing import CliRunner
 
 from budobugs.cli.app import app
 from budobugs.mcp.doctor import probe_stdio
-from budobugs.models import CandidateStatus, Finding, Run, Severity
+from budobugs.models import (
+    CandidateStatus,
+    EngagementMode,
+    Finding,
+    Run,
+    SafeExperimentTemplate,
+    SafeHttpAction,
+    SelfOwnedObjectRecipe,
+    Severity,
+)
+from budobugs.orchestration.engine import HuntEngine
 from budobugs.proxy.burp import BurpMcpAdapter
 from budobugs.proxy.caido import CaidoClient
 from budobugs.proxy.zap import ZapClient
@@ -36,6 +46,203 @@ def test_hunt_dry_run_makes_no_run_or_cost_records(service, lab_engagement, monk
     assert payload["planned_model_call_upper_bound"] == 0
     assert service.latest_run(lab_engagement.engagement_id) is None
     assert service.list_costs() == []
+
+
+def test_cli_registers_only_scoped_self_owned_mutation_experiments(
+    service,
+    lab_engagement,
+    monkeypatch,
+) -> None:
+    program = lab_engagement.model_copy(
+        update={
+            "selected_mode": EngagementMode.PROGRAM,
+            "testing_accounts_secret_refs": {"alice": "env://BUDO_ACCOUNT_ALICE"},
+        }
+    )
+    service.save_engagement(program)
+    base = program.root_targets[0].uri
+
+    def action(action_id: str, method: str, path: str, expected: list[int]) -> SafeHttpAction:
+        return SafeHttpAction(
+            action_id=action_id,
+            account_alias="alice",
+            method=method,
+            target_url=f"{base}{path}",
+            expected_statuses=expected,
+        )
+
+    object_boundary = "fixture-order:1"
+    operation_boundary = "confirm self-owned order once"
+    normal = action("normal-state", "GET", "/api/orders/1", [200]).model_copy(
+        update={"object_boundary": object_boundary}
+    )
+    experiment = action("repeat-confirm", "POST", "/api/orders/1/confirm", [200]).model_copy(
+        update={"operation_boundary": operation_boundary, "object_boundary": object_boundary}
+    )
+    negative = action("secure-confirm", "POST", "/api/secure-orders/1/confirm", [409]).model_copy(
+        update={"operation_boundary": operation_boundary, "object_boundary": object_boundary}
+    )
+    template = SafeExperimentTemplate(
+        template_id="safe-workflow-001",
+        specialist_role="business-logic-specialist",
+        title="Repeated self-owned confirmation experiment",
+        vulnerability_class="business-logic-workflow",
+        affected_feature="order confirmation",
+        security_invariant="An order confirmation must enforce its one-time state invariant.",
+        root_cause_key="confirmation-state-enforcement",
+        repair_boundary="shared confirmation state service",
+        capability_before="one confirmation",
+        capability_after="two confirmations",
+        capability_delta="one additional self-owned confirmation effect",
+        strongest_benign_explanation="the operation may be intentionally idempotent",
+        impact="duplicate protected business effect",
+        normal_control=normal,
+        experiment=experiment,
+        negative_control=negative,
+        effect_observation=normal.model_copy(update={"action_id": "observe-confirm-count"}),
+        effect_json_pointer="/confirm_count",
+        expected_effect_sequence=[0, 1, 2],
+        cleanup=[
+            action("cleanup-reset", "POST", "/__fixture__/reset", [200]).model_copy(
+                update={"headers": {"X-Budo-Fixture": "reset-local-test-state"}}
+            )
+        ],
+        cleanup_verification=normal.model_copy(update={"action_id": "verify-state-restored"}),
+    )
+    monkeypatch.setattr("budobugs.cli.app._service", lambda: service)
+    monkeypatch.setattr(
+        "budobugs.cli.app.SecretStore.set",
+        lambda _self, _namespace, _name, _value: "env://BUDO_SAFE_EXPERIMENT",
+    )
+    monkeypatch.setenv("BUDO_SAFE_EXPERIMENT", template.model_dump_json())
+    result = CliRunner().invoke(
+        app,
+        [
+            "engagement",
+            "experiment-set",
+            program.engagement_id,
+            "--spec-env",
+            "BUDO_SAFE_EXPERIMENT",
+            "--json",
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    updated = service.load_engagement(program.engagement_id)
+    assert updated.safe_experiment_secret_refs == {"safe-workflow-001": "env://BUDO_SAFE_EXPERIMENT"}
+
+    outside = template.model_copy(
+        update={"experiment": template.experiment.model_copy(update={"target_url": "https://outside.example/control"})}
+    )
+    monkeypatch.setenv("BUDO_SAFE_EXPERIMENT", outside.model_dump_json())
+    denied = CliRunner().invoke(
+        app,
+        [
+            "engagement",
+            "experiment-set",
+            program.engagement_id,
+            "--spec-env",
+            "BUDO_SAFE_EXPERIMENT",
+            "--json",
+        ],
+    )
+    assert denied.exit_code != 0
+    assert "out of scope" in denied.output
+
+    service.authorize_engagement(program.engagement_id)
+    monkeypatch.setenv("BUDO_SAFE_EXPERIMENT", template.model_dump_json())
+    post_authorization = CliRunner().invoke(
+        app,
+        [
+            "engagement",
+            "experiment-set",
+            program.engagement_id,
+            "--spec-env",
+            "BUDO_SAFE_EXPERIMENT",
+            "--json",
+        ],
+    )
+    assert post_authorization.exit_code != 0
+    still_authorized = service.load_engagement(program.engagement_id)
+    assert still_authorized.authorization_status.value == "authorized"
+    assert still_authorized.safe_experiment_secret_refs == {"safe-workflow-001": "env://BUDO_SAFE_EXPERIMENT"}
+
+
+def test_cli_account_set_registers_only_pre_authorized_scoped_object_recipe(
+    service,
+    lab_engagement,
+    monkeypatch,
+) -> None:
+    program = lab_engagement.model_copy(update={"selected_mode": EngagementMode.PROGRAM})
+    service.save_engagement(program)
+    base = program.root_targets[0].uri
+
+    def action(action_id: str, method: str, path: str, statuses: list[int], body: object = None) -> SafeHttpAction:
+        return SafeHttpAction(
+            action_id=action_id,
+            account_alias="alice",
+            method=method,
+            target_url=f"{base}{path}",
+            body=body,
+            expected_statuses=statuses,
+        )
+
+    recipe = SelfOwnedObjectRecipe(
+        recipe_id="alice-harmless-object",
+        account_alias="alice",
+        object_description="one harmless alice object",
+        create=action("alice-create", "POST", "/api/alice/object", [201], {"label": "safe"}),
+        verification=action("alice-verify", "GET", "/api/alice/object", [200]),
+        cleanup=action("alice-cleanup", "DELETE", "/api/alice/object", [204]),
+        cleanup_verification=action("alice-cleanup-verify", "GET", "/api/alice/object", [404]),
+    )
+    payload = {"headers": {"X-Fixture": "alice"}, "self_owned_object_recipe": recipe.model_dump(mode="json")}
+    monkeypatch.setattr("budobugs.cli.app._service", lambda: service)
+    monkeypatch.setattr(
+        "budobugs.cli.app.SecretStore.set",
+        lambda _self, _namespace, _name, _value: "env://BUDO_ACCOUNT_ALICE",
+    )
+    monkeypatch.setenv("BUDO_ACCOUNT_ALICE", json.dumps(payload))
+    result = CliRunner().invoke(
+        app,
+        [
+            "engagement",
+            "account-set",
+            program.engagement_id,
+            "--alias",
+            "alice",
+            "--headers-env",
+            "BUDO_ACCOUNT_ALICE",
+            "--json",
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    assert json.loads(result.stdout)["self_owned_object_recipe"] == "configured"
+    assert service.load_engagement(program.engagement_id).testing_accounts_secret_refs == {
+        "alice": "env://BUDO_ACCOUNT_ALICE"
+    }
+    headers, login_urls, recipes = HuntEngine(service)._account_metadata(service.load_engagement(program.engagement_id))
+    assert headers == {"alice": {"X-Fixture": "alice"}}
+    assert login_urls == {}
+    assert [item.recipe_id for item in recipes] == ["alice-harmless-object"]
+
+    outside = {**payload, "self_owned_object_recipe": {**recipe.model_dump(mode="json")}}
+    outside["self_owned_object_recipe"]["create"]["target_url"] = "https://outside.example/create"
+    monkeypatch.setenv("BUDO_ACCOUNT_ALICE", json.dumps(outside))
+    denied = CliRunner().invoke(
+        app,
+        [
+            "engagement",
+            "account-set",
+            program.engagement_id,
+            "--alias",
+            "alice",
+            "--headers-env",
+            "BUDO_ACCOUNT_ALICE",
+            "--json",
+        ],
+    )
+    assert denied.exit_code != 0
+    assert "out of scope" in denied.output
 
 
 async def test_proxy_adapters_report_unavailable_local_endpoints_truthfully() -> None:
@@ -170,10 +377,17 @@ def test_hunt_cli_wires_proxy_login_resume_receipt_and_outcome_feedback(
             "0",
             "--reason",
             "missing negative control on platform review",
+            "--root-cause-key",
+            "owner-check-omitted",
+            "--exploitation-method",
+            "authorization-differential",
             "--json",
         ],
     )
     assert feedback.exit_code == 0, feedback.stdout
     feedback_payload = json.loads(feedback.stdout)
     assert feedback_payload["outcome"]["status"] == "rejected"
+    assert feedback_payload["outcome"]["vulnerability_class"] == finding.vulnerability_class
+    assert feedback_payload["outcome"]["root_cause_key"] == "owner-check-omitted"
+    assert feedback_payload["outcome"]["feature_key"] == finding.affected_feature
     assert feedback_payload["updated_priors"]["acceptance"] < 0.55

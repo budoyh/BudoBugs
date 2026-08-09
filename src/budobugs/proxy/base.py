@@ -16,6 +16,78 @@ class ProxyUnavailable(RuntimeError):
     """The selected proxy backend cannot satisfy the requested capability."""
 
 
+# These are never copied from captured traffic into a new request.  The
+# request's destination determines Host and the HTTP client/proxy determines
+# framing.  Credential values may only come from the engagement-declared
+# account headers supplied to ``CredentialSubstitutedReplay.build``.
+_HISTORY_ONLY_HEADERS = {
+    "authorization",
+    "cookie",
+    "proxy-authorization",
+    "proxy-authenticate",
+}
+_TRANSPORT_HEADERS = {
+    "connection",
+    "content-length",
+    "expect",
+    "host",
+    "keep-alive",
+    "proxy-connection",
+    "te",
+    "trailer",
+    "transfer-encoding",
+    "upgrade",
+}
+
+
+@dataclass(frozen=True, slots=True)
+class CredentialSubstitutedReplay:
+    """A replay request whose credentials are explicitly substituted.
+
+    ``exchange`` stays the immutable history reference.  ``headers`` is a
+    fresh request projection: safe request metadata from history plus only the
+    declared account identity and typed non-secret proposal headers.  Adapter
+    implementations must send this projection, rather than replaying by a
+    history ID with the proxy's stored cookies.
+    """
+
+    exchange: HttpExchange
+    account_alias: str
+    headers: dict[str, str]
+    body: str | None
+
+    @classmethod
+    def build(
+        cls,
+        exchange: HttpExchange,
+        *,
+        account_alias: str,
+        declared_account_headers: dict[str, str],
+        proposal_headers: dict[str, str] | None = None,
+    ) -> CredentialSubstitutedReplay:
+        headers = {
+            name: value
+            for name, value in exchange.request_headers.items()
+            if name.lower() not in _HISTORY_ONLY_HEADERS | _TRANSPORT_HEADERS
+        }
+        for name, value in {**declared_account_headers, **(proposal_headers or {})}.items():
+            lowered = name.lower()
+            if lowered in _TRANSPORT_HEADERS:
+                continue
+            # Preserve the canonical header name from the fresh value and
+            # ensure a history value with a differently-cased name cannot
+            # survive alongside it.
+            for existing in [item for item in headers if item.lower() == lowered]:
+                del headers[existing]
+            headers[name] = value
+        return cls(
+            exchange=exchange,
+            account_alias=account_alias,
+            headers=headers,
+            body=exchange.request_body,
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class ProxyCapabilities:
     history: bool
@@ -23,6 +95,7 @@ class ProxyCapabilities:
     http2: bool
     active_automation: bool
     export: bool
+    credential_substitution_replay: bool = False
 
 
 class ProxyBackend(ABC):
@@ -59,6 +132,21 @@ class ProxyBackend(ABC):
         account_alias: str | None = None,
     ) -> HttpExchange:
         raise ProxyUnavailable("concrete proxy backend does not implement controlled replay")
+
+    async def replay_with_request(
+        self,
+        engagement: Engagement,
+        request: CredentialSubstitutedReplay,
+    ) -> HttpExchange:
+        """Send an explicit credentials-substituted replay through this backend.
+
+        Backends which only store history (for example HAR) intentionally do
+        not inherit this capability.  The executor records those as blocked
+        rather than claiming a direct reissue was performed by the proxy.
+        """
+
+        del engagement, request
+        raise ProxyUnavailable(f"{self.name} does not support credential-substituted replay")
 
     @abstractmethod
     async def export(self, destination: Path) -> Path:

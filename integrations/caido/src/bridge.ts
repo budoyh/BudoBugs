@@ -10,7 +10,13 @@ type BridgeInput =
       count?: number;
     }
   | { action: "get"; url: string; id: string }
-  | { action: "replay"; url: string; id: string };
+  | { action: "replay"; url: string; id: string }
+  | {
+      action: "replay_with_request";
+      url: string;
+      history_id: string;
+      request: { method: string; url: string; headers: Record<string, string>; body?: string | null };
+    };
 
 function validateControlUrl(value: string): string {
   const url = new URL(value);
@@ -50,6 +56,19 @@ function serialize(item: RequestResponseOpt | undefined): unknown {
   };
 }
 
+function rawReplayRequest(request: Extract<BridgeInput, { action: "replay_with_request" }>['request']): Uint8Array {
+  const target = new URL(request.url);
+  const path = `${target.pathname || "/"}${target.search}`;
+  // Host is derived from the scoped request URL. The bridge accepts no caller
+  // supplied transport framing; credentials exist only in supplied headers.
+  const headers = Object.entries(request.headers)
+    .filter(([name]) => !["host", "content-length", "connection", "transfer-encoding"].includes(name.toLowerCase()))
+    .map(([name, value]) => `${name}: ${value}`);
+  const host = target.port ? `${target.hostname}:${target.port}` : target.hostname;
+  const body = request.body ?? "";
+  return Buffer.from(`${request.method.toUpperCase()} ${path} HTTP/1.1\r\nHost: ${host}\r\n${headers.join("\r\n")}\r\n\r\n${body}`, "utf8");
+}
+
 async function readInput(): Promise<BridgeInput> {
   const file = process.argv[2];
   if (!file) throw new Error("expected a JSON input file path");
@@ -73,13 +92,34 @@ async function main(): Promise<void> {
     if (expression) builder = builder.filter(expression);
     const page = await builder.first(Math.min(Math.max(input.count ?? 100, 1), 500));
     result = page.edges.map((edge) => serialize(edge.node));
-  } else {
+  } else if (input.action === "replay") {
     const item = await client.request.get(input.id, { requestRaw: true, responseRaw: true });
     if (!item?.request.raw) throw new Error("Caido request does not have replayable raw bytes");
     const session = await client.replay.sessions.create({ requestSource: { id: input.id } });
     const sent = await client.replay.send(session.id, {
       raw: item.request.raw,
       connection: { host: item.request.host, port: item.request.port, isTLS: item.request.isTls },
+      settings: { connectionClose: true, updateContentLength: true },
+    });
+    result = {
+      status: sent.status,
+      error: sent.error,
+      entryId: sent.entry.id,
+      exchange: sent.entry.request
+        ? serialize({ request: sent.entry.request, response: sent.entry.response })
+      : undefined,
+    };
+  } else {
+    // Fetch the selected history item solely to prove it exists.  The bytes
+    // sent to Caido are built from the Python-side sanitized projection, not
+    // from item.request.raw (which may contain stale history credentials).
+    const item = await client.request.get(input.history_id, { requestRaw: false, responseRaw: false });
+    if (!item?.request) throw new Error("Caido history request is unavailable for credential-substituted replay");
+    const target = new URL(input.request.url);
+    const session = await client.replay.sessions.create({ requestSource: { id: input.history_id } });
+    const sent = await client.replay.send(session.id, {
+      raw: rawReplayRequest(input.request),
+      connection: { host: target.hostname, port: Number(target.port || (target.protocol === "https:" ? 443 : 80)), isTLS: target.protocol === "https:" },
       settings: { connectionClose: true, updateContentLength: true },
     });
     result = {

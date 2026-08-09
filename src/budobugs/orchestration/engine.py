@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from collections import Counter
 from dataclasses import dataclass, replace
 from pathlib import Path
 from time import perf_counter
@@ -17,14 +18,16 @@ from budobugs.agents.runner import CodexTaskRunner
 from budobugs.analysis.source_scan import SourceScanCoordinator
 from budobugs.core.identifiers import new_id
 from budobugs.core.io import atomic_write_json, atomic_write_text, sha256_bytes, sha256_file
-from budobugs.core.policy import require_allowed, target_allowed
+from budobugs.core.policy import require_allowed, target_allowed, websocket_target_allowed
 from budobugs.core.redaction import redact_text
 from budobugs.core.state_machine import block_phase, complete_phase, initialize_phases, start_phase
 from budobugs.evidence.pack import EvidencePackBuilder
 from budobugs.hypotheses.generator import generate_hypotheses
-from budobugs.knowledge.vendor import VendorKnowledgeBase
+from budobugs.knowledge.vendor import RootCauseDeduper, VendorKnowledgeBase
 from budobugs.models import (
     AgentLoopState,
+    AgentRole,
+    AgentTurnReceipt,
     AuthorizationStatus,
     CandidateStatus,
     ControlExperiment,
@@ -40,14 +43,19 @@ from budobugs.models import (
     ObjectReference,
     Parameter,
     PhaseName,
+    ProgramExperimentTemplate,
     Role,
     RootCauseCluster,
     Run,
+    SafeWebSocketExperimentTemplate,
     SecurityInvariant,
+    SelfOwnedObjectRecipe,
     StateTransition,
     Tenant,
     ValidationOutcome,
     ValidationPlan,
+    parse_program_experiment_template,
+    program_experiment_actions,
 )
 from budobugs.models.base import BudoModel
 from budobugs.orchestration.agent_loop import (
@@ -58,6 +66,7 @@ from budobugs.orchestration.agent_loop import (
     PolicyProposalProvider,
     ProposalProvider,
 )
+from budobugs.orchestration.catalog import ActionCatalogBuilder
 from budobugs.orchestration.executor import TypedActionExecutor
 from budobugs.orchestration.service import RepositoryService
 from budobugs.proxy import ProxyBackendFactory
@@ -84,6 +93,42 @@ class HuntResult:
 
 class HuntEngine:
     """Run mode-aware, artifact-backed research under one authorized engagement."""
+
+    # These are the roles the autonomous-engagement acceptance claim depends
+    # on.  The coordinator is evidenced by a completed dynamic route; every
+    # specialist must also have a successful typed invocation/turn receipt.
+    NAMED_CORE_CODEX_AGENT_ROLES: frozenset[str] = frozenset(
+        {
+            AgentRole.COORDINATOR.value,
+            AgentRole.BROWSER_EXPLORER.value,
+            AgentRole.TRAFFIC_MODELER.value,
+            AgentRole.AUTHORIZATION_SPECIALIST.value,
+            AgentRole.BUSINESS_LOGIC_SPECIALIST.value,
+            AgentRole.API_AUTH_SPECIALIST.value,
+            AgentRole.EVIDENCE_VALIDATOR.value,
+            AgentRole.ADVERSARIAL_CRITIC.value,
+        }
+    )
+    REQUIRED_CODEX_AGENT_ROLES: frozenset[str] = frozenset(role.value for role in AgentRole)
+    REQUIRED_LAB_AGENT_SKILLS: frozenset[str] = frozenset(
+        {
+            "api-auth-session",
+            "authz-business-logic",
+            "budobugs-controller",
+            "butian-report",
+            "client-file-workflows",
+            "engagement-intake",
+            "evidence-critic",
+            "hypothesis-and-validation",
+            "lab-evaluation",
+            "passive-recon",
+            "source-secret-supply-chain",
+            "tool-operator",
+            "traffic-object-model",
+            "web-attack-surface",
+        }
+    )
+    REQUIRED_PROGRAM_AGENT_SKILLS: frozenset[str] = REQUIRED_LAB_AGENT_SKILLS - {"lab-evaluation"}
 
     def __init__(
         self,
@@ -126,6 +171,15 @@ class HuntEngine:
             )
 
     def _engagement_token_budget(self) -> int:
+        override = os.environ.get("BUDOBUGS_ENGAGEMENT_TOKEN_BUDGET")
+        if override is not None:
+            try:
+                override_budget = int(override)
+            except ValueError as exc:
+                raise ValueError("BUDOBUGS_ENGAGEMENT_TOKEN_BUDGET must be a positive integer") from exc
+            if override_budget <= 0:
+                raise ValueError("BUDOBUGS_ENGAGEMENT_TOKEN_BUDGET must be a positive integer")
+            return override_budget
         defaults = yaml.safe_load((self.service.paths.root / "config" / "defaults.yaml").read_text(encoding="utf-8"))
         cost = defaults.get("cost", {}) if isinstance(defaults, dict) else {}
         budget = cost.get("engagement_token_budget") if isinstance(cost, dict) else None
@@ -134,22 +188,26 @@ class HuntEngine:
         return budget
 
     def estimate(self, engagement: Engagement) -> dict[str, object]:
-        scheduled_calls = {
-            EngagementMode.LAB: 14,
-            EngagementMode.PROGRAM: 10,
-            EngagementMode.SOURCE: 2,
-        }[engagement.selected_mode]
+        catalog = ActionCatalogBuilder(engagement)
+        scheduled_roles = [role for round_index in range(1, 9) for role in catalog.schedule(round_index)]
+        scheduled_calls = len(scheduled_roles) if engagement.selected_mode is not EngagementMode.SOURCE else 1
         model_calls = scheduled_calls if self.agent_mode == "codex" else 0
         routes: dict[str, object] = {}
         model_token_ceiling = 0
         if model_calls and self.model_router is not None:
-            task_counts = (
-                {"coordinator": 2, "analysis": 10, "critical_judgment": 2}
-                if engagement.selected_mode is EngagementMode.LAB
-                else {"coordinator": 2, "analysis": 6, "critical_judgment": 2}
-                if engagement.selected_mode is EngagementMode.PROGRAM
-                else {"analysis": 1, "critical_judgment": 1}
-            )
+            if engagement.selected_mode is EngagementMode.SOURCE:
+                task_counts = {"analysis": 1}
+            else:
+                task_counts = dict(
+                    Counter(
+                        "coordinator"
+                        if role is AgentRole.COORDINATOR
+                        else "critical_judgment"
+                        if role in {AgentRole.EVIDENCE_VALIDATOR, AgentRole.ADVERSARIAL_CRITIC}
+                        else "analysis"
+                        for role in scheduled_roles
+                    )
+                )
             for task_class, count in task_counts.items():
                 try:
                     selection = self.model_router.select(task_class, profile=self.model_profile)
@@ -167,9 +225,10 @@ class HuntEngine:
         engagement_ceiling = self._engagement_token_budget()
         model_token_ceiling = min(model_token_ceiling, engagement_ceiling)
         network_upper_bound = {
-            EngagementMode.LAB: 96,
-            EngagementMode.PROGRAM: len(engagement.root_targets) * 12
-            + max(0, len(engagement.testing_accounts_secret_refs) * 24),
+            EngagementMode.LAB: 160,
+            EngagementMode.PROGRAM: len(engagement.root_targets) * 20
+            + max(1, len(engagement.testing_accounts_secret_refs)) * 24
+            + len(engagement.safe_experiment_secret_refs) * 16,
             EngagementMode.SOURCE: 0,
         }[engagement.selected_mode]
         return {
@@ -1007,7 +1066,11 @@ class HuntEngine:
             receipt_path=loop_root / "agent-loop" / "proxy-selection.json",
             har_path=self.har_path,
         )
-        account_headers, login_urls = self._account_metadata(engagement)
+        account_headers, login_urls, self_owned_object_recipes = self._account_metadata(engagement)
+        safe_experiments = self._safe_experiment_templates(engagement)
+        safe_websocket_experiments = self._safe_websocket_experiment_templates(engagement)
+        knowledge_base = VendorKnowledgeBase(self.service.store)
+        knowledge = knowledge_base.load(engagement)
         executor = TypedActionExecutor(
             repository_root=self.service.paths.root,
             runtime_home=self.service.paths.runtime_home,
@@ -1017,6 +1080,11 @@ class HuntEngine:
             proxy=proxy,
             account_headers=account_headers,
             account_login_urls=login_urls,
+            safe_experiments=safe_experiments,
+            safe_websocket_experiments=safe_websocket_experiments,
+            self_owned_object_recipes=self_owned_object_recipes,
+            knowledge=knowledge,
+            knowledge_saver=knowledge_base.save,
             interactive_login=self.interactive_login,
             headless=self.headless,
         )
@@ -1039,6 +1107,7 @@ class HuntEngine:
             artifact_root=loop_root,
             executor=executor,
             provider=provider,
+            knowledge=knowledge,
         )
         execution = await orchestrator.run(
             resume=(loop_root / "agent-loop" / "state.json").is_file(),
@@ -1050,10 +1119,14 @@ class HuntEngine:
         self.service.save_run(run)
         return execution
 
-    def _account_metadata(self, engagement: Engagement) -> tuple[dict[str, dict[str, str]], dict[str, str]]:
+    def _account_metadata(
+        self,
+        engagement: Engagement,
+    ) -> tuple[dict[str, dict[str, str]], dict[str, str], list[SelfOwnedObjectRecipe]]:
         store = SecretStore(self.service.paths.runtime_home / "secrets" / "fallback.json")
         headers_by_alias: dict[str, dict[str, str]] = {}
         login_urls: dict[str, str] = {}
+        recipes: list[SelfOwnedObjectRecipe] = []
         forbidden = {"host", "content-length", "connection", "transfer-encoding", "proxy-authorization"}
         for alias, reference in engagement.testing_accounts_secret_refs.items():
             secret = store.get(reference)
@@ -1079,7 +1152,77 @@ class HuntEngine:
                     raise RuntimeError(f"account secret for {alias} login_url must be a string")
                 require_allowed(target_allowed(engagement, login_url))
                 login_urls[alias] = login_url
-        return headers_by_alias, login_urls
+            recipe_payload = payload.get("self_owned_object_recipe")
+            if recipe_payload is not None:
+                try:
+                    recipe = SelfOwnedObjectRecipe.model_validate(recipe_payload)
+                except ValueError as exc:
+                    raise RuntimeError(f"self-owned object recipe for {alias} is invalid: {exc}") from exc
+                if recipe.account_alias != alias:
+                    raise RuntimeError(f"self-owned object recipe account mismatch for {alias}")
+                for action in (recipe.create, recipe.verification, recipe.cleanup, recipe.cleanup_verification):
+                    require_allowed(target_allowed(engagement, action.target_url))
+                recipes.append(recipe)
+        return headers_by_alias, login_urls, recipes
+
+    def _safe_experiment_templates(self, engagement: Engagement) -> list[ProgramExperimentTemplate]:
+        store = SecretStore(self.service.paths.runtime_home / "secrets" / "fallback.json")
+        templates: list[ProgramExperimentTemplate] = []
+        for template_id, reference in engagement.safe_experiment_secret_refs.items():
+            secret = store.get(reference)
+            if not secret:
+                raise RuntimeError(f"safe experiment secret cannot be resolved: {template_id}")
+            try:
+                template = parse_program_experiment_template(secret)
+            except ValueError as exc:
+                raise RuntimeError(f"safe experiment {template_id} is invalid: {exc}") from exc
+            if template.template_id != template_id:
+                raise RuntimeError(f"safe experiment identity mismatch: {template_id}")
+            for action in program_experiment_actions(template):
+                if (
+                    action.account_alias != "anonymous"
+                    and action.account_alias not in engagement.testing_accounts_secret_refs
+                ):
+                    raise RuntimeError(
+                        f"safe experiment {template_id} references undeclared account {action.account_alias}"
+                    )
+                require_allowed(target_allowed(engagement, action.target_url))
+            templates.append(template)
+        return templates
+
+    def _safe_websocket_experiment_templates(
+        self,
+        engagement: Engagement,
+    ) -> list[SafeWebSocketExperimentTemplate]:
+        """Resolve only separately declared WebSocket contracts before authorization.
+
+        Kept separate from HTTP experiments so a mixed old/new secret cannot
+        cause one parser to silently accept the other protocol's actions.
+        """
+
+        store = SecretStore(self.service.paths.runtime_home / "secrets" / "fallback.json")
+        templates: list[SafeWebSocketExperimentTemplate] = []
+        seen_ids = set(engagement.safe_experiment_secret_refs)
+        for template_id, reference in engagement.websocket_experiment_secret_refs.items():
+            if template_id in seen_ids:
+                raise RuntimeError(f"safe WebSocket experiment ID conflicts with HTTP experiment: {template_id}")
+            secret = store.get(reference)
+            if not secret:
+                raise RuntimeError(f"safe WebSocket experiment secret cannot be resolved: {template_id}")
+            try:
+                template = SafeWebSocketExperimentTemplate.model_validate_json(secret)
+            except ValueError as exc:
+                raise RuntimeError(f"safe WebSocket experiment {template_id} is invalid: {exc}") from exc
+            if template.template_id != template_id:
+                raise RuntimeError(f"safe WebSocket experiment identity mismatch: {template_id}")
+            for action in (template.normal_control, template.experiment, template.negative_control):
+                if action.account_alias not in engagement.testing_accounts_secret_refs:
+                    raise RuntimeError(
+                        f"safe WebSocket experiment {template_id} references undeclared account {action.account_alias}"
+                    )
+                require_allowed(websocket_target_allowed(engagement, action.target_url))
+            templates.append(template)
+        return templates
 
     def _apply_agent_execution(self, context: dict[str, Any], execution: AgentLoopExecution) -> None:
         findings = execution.findings
@@ -1136,8 +1279,16 @@ class HuntEngine:
         outcomes: list[ValidationOutcome],
         clusters: list[RootCauseCluster],
     ) -> list[Finding]:
-        by_candidate = {item.candidate_id: item for item in outcomes}
         by_finding = {item.finding_id: item for item in findings}
+        primary_ids = HuntEngine._primary_confirmed_finding_ids(outcomes, clusters)
+        return [by_finding[finding_id] for finding_id in primary_ids if finding_id in by_finding]
+
+    @staticmethod
+    def _primary_confirmed_finding_ids(
+        outcomes: list[ValidationOutcome],
+        clusters: list[RootCauseCluster],
+    ) -> list[str]:
+        by_candidate = {item.candidate_id: item for item in outcomes}
         primary_ids: list[str] = []
         for cluster in clusters:
             outcome = by_candidate.get(cluster.primary_candidate_id)
@@ -1145,10 +1296,294 @@ class HuntEngine:
                 primary_ids.append(outcome.finding_id)
         if not primary_ids:
             primary_ids = [item.finding_id for item in outcomes if item.decision.value == "CONFIRMED"]
-        return [by_finding[finding_id] for finding_id in dict.fromkeys(primary_ids) if finding_id in by_finding]
+        return list(dict.fromkeys(primary_ids))
 
     @staticmethod
-    def _finalize_agent_receipt(context: dict[str, Any]) -> None:
+    def _artifact_bound_agent_loop_summary(state: AgentLoopState) -> dict[str, object]:
+        """Rebuild every agent-loop receipt field that can satisfy acceptance.
+
+        The receipt is a convenience view for release review, not an authority.
+        Keep this reconstruction adjacent to the finalizer so a later summary
+        field cannot accidentally become an unbound acceptance input.
+        """
+
+        def turn_executed(turn: AgentTurnReceipt) -> bool:
+            proposal = turn.proposal
+            observation = turn.observation
+            return observation.status.value == "executed" and (
+                proposal.kind.value != "tool_task" or observation.details.get("status") == "completed"
+            )
+
+        confirmed = [item for item in state.validation_outcomes if item.decision.value == "CONFIRMED"]
+        killed = [item for item in state.validation_outcomes if item.decision.value == "KILL"]
+        clusters = RootCauseDeduper.cluster(state.validation_outcomes)
+        confirmed_candidate_ids = {item.candidate_id for item in confirmed}
+        successful_turns = [turn for turn in state.turns if turn_executed(turn)]
+        executed_agents = list(dict.fromkeys(turn.proposal.agent_role for turn in successful_turns))
+        executed_skills = list(dict.fromkeys(turn.proposal.skill_name for turn in successful_turns))
+        rounds = sorted({turn.round_index for turn in state.turns})
+        return {
+            "schema_version": 1,
+            "loop_id": state.loop_id,
+            "run_id": state.run_id,
+            "engagement_id": state.engagement_id,
+            "status": state.status.value,
+            "stop_reason": state.stop_reason,
+            "resume_count": state.resume_count,
+            "plan_execute_observe_rounds": rounds,
+            "round_count": len(rounds),
+            "turn_count": len(state.turns),
+            "executed_turn_count": len(successful_turns),
+            "participating_agents": [item.value for item in executed_agents],
+            "participating_agent_count": len(executed_agents),
+            "invoked_skills": executed_skills,
+            "proxy_backends": state.proxy_backends,
+            "typed_action_kinds_executed": sorted({turn.proposal.kind.value for turn in successful_turns}),
+            "network_or_browser_actions_executed": [
+                turn.proposal.catalog_action_id
+                for turn in successful_turns
+                if turn.observation.exchange_ids
+                or turn.proposal.kind.value
+                in {"browser_explore", "browser_navigate", "browser_form", "proxy_replay", "http_request"}
+            ],
+            "confirmed_outcomes": [item.model_dump(mode="json") for item in confirmed],
+            "killed_outcomes": [item.model_dump(mode="json") for item in killed],
+            "confirmed_vulnerability_classes": sorted({item.vulnerability_class for item in confirmed}),
+            "root_cause_clusters": [item.model_dump(mode="json") for item in clusters],
+            "same_fix_merged_clusters": [
+                item.model_dump(mode="json") for item in clusters if len(item.candidate_ids) > 1
+            ],
+            "same_fix_merged_confirmed_clusters": [
+                {
+                    **item.model_dump(mode="json"),
+                    "confirmed_candidate_ids": [
+                        candidate_id for candidate_id in item.candidate_ids if candidate_id in confirmed_candidate_ids
+                    ],
+                }
+                for item in clusters
+                if sum(candidate_id in confirmed_candidate_ids for candidate_id in item.candidate_ids) >= 2
+            ],
+            "same_role_resumed_threads": sorted(
+                {
+                    turn.invocation.role.value
+                    for turn in state.turns
+                    if turn.invocation.provider == "codex" and turn.invocation.resumed_thread
+                }
+            ),
+            "role_thread_ids": state.role_thread_ids,
+            "coordinator_routes": [item.model_dump(mode="json") for item in state.route_receipts],
+            "agent_execution_receipts": [
+                {
+                    "agent_role": turn.proposal.agent_role.value,
+                    "invocation_role": turn.invocation.role.value,
+                    "provider": turn.invocation.provider,
+                    "invocation_status": turn.invocation.status,
+                    "skill_name": turn.proposal.skill_name,
+                    "catalog_action_id": turn.proposal.catalog_action_id,
+                    "observation_id": turn.observation.observation_id,
+                    "observation_status": turn.observation.status.value,
+                }
+                for turn in state.turns
+            ],
+            "coordinator_route_count": len(state.route_receipts),
+            "dynamic_coordinator_route_count": sum(
+                not item.fallback and item.invocation.provider == "codex" for item in state.route_receipts
+            ),
+            "policy_coordinator_route_count": sum(
+                not item.fallback and item.invocation.provider == "policy" for item in state.route_receipts
+            ),
+            "fallback_coordinator_route_count": sum(item.fallback for item in state.route_receipts),
+        }
+
+    @staticmethod
+    def _agent_receipt_artifact_binding(
+        receipt_path: Path,
+        receipt: dict[str, object],
+        context: dict[str, Any],
+        *,
+        agent_mode: str,
+    ) -> dict[str, object]:
+        """Fail closed unless receipt acceptance inputs are durable runtime facts."""
+
+        state_path = receipt_path.parent / "state.json"
+        ledger_path = receipt_path.parent / "invocation-ledger.json"
+        errors: list[dict[str, object]] = []
+        mismatches: list[str] = []
+        state: AgentLoopState | None = None
+        try:
+            state = AgentLoopState.model_validate_json(state_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            errors.append({"code": "state_missing_or_invalid", "detail": type(exc).__name__})
+
+        if state is not None:
+
+            def without_cluster_ids(items: object) -> object:
+                if not isinstance(items, list):
+                    return items
+                return [
+                    {key: item for key, item in cluster.items() if key != "cluster_id"}
+                    if isinstance(cluster, dict)
+                    else cluster
+                    for cluster in items
+                ]
+
+            expected = HuntEngine._artifact_bound_agent_loop_summary(state)
+            for field, value in expected.items():
+                receipt_value = receipt.get(field)
+                if field in {
+                    "root_cause_clusters",
+                    "same_fix_merged_clusters",
+                    "same_fix_merged_confirmed_clusters",
+                }:
+                    # Cluster IDs are presentation IDs generated when the
+                    # receipt is written, not durable state.  Bind the
+                    # outcome-derived cluster content without falsely
+                    # rejecting a legitimate re-finalization.
+                    receipt_value = without_cluster_ids(receipt_value)
+                    value = without_cluster_ids(value)
+                if receipt_value != value:
+                    mismatches.append(field)
+            if (
+                receipt.get("loop_id") != state.loop_id
+                or receipt.get("run_id") != state.run_id
+                or receipt.get("engagement_id") != state.engagement_id
+            ):
+                errors.append({"code": "receipt_state_identity_mismatch"})
+
+            context_outcomes = [
+                item.model_dump(mode="json")
+                for item in context.get("validation_outcomes", [])
+                if isinstance(item, ValidationOutcome)
+            ]
+            state_outcomes = [item.model_dump(mode="json") for item in state.validation_outcomes]
+            if context_outcomes != state_outcomes:
+                errors.append({"code": "context_validation_outcomes_mismatch"})
+
+            run_root = receipt_path.parent.parent.parent.resolve()
+            for outcome in state.validation_outcomes:
+                validator_path = (
+                    receipt_path.parent.parent / "validators" / outcome.validator_id / f"{outcome.outcome_id}.json"
+                )
+                try:
+                    payload = json.loads(validator_path.read_text(encoding="utf-8"))
+                    persisted = ValidationOutcome.model_validate(payload["outcome"])
+                except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+                    errors.append(
+                        {
+                            "code": "validator_artifact_missing_or_invalid",
+                            "outcome_id": outcome.outcome_id,
+                            "detail": type(exc).__name__,
+                        }
+                    )
+                    continue
+                if persisted.model_dump(mode="json") != outcome.model_dump(mode="json"):
+                    errors.append({"code": "validator_artifact_outcome_mismatch", "outcome_id": outcome.outcome_id})
+
+            executed_pairs = {
+                (turn.proposal.catalog_action_id, turn.observation.observation_id)
+                for turn in state.turns
+                if turn.observation.status.value == "executed"
+            }
+            for route in state.route_receipts:
+                if route.status != "completed":
+                    continue
+                route_pairs = zip(route.selected_action_ids, route.observation_ids, strict=True)
+                if len(route.selected_action_ids) != len(route.observation_ids) or any(
+                    pair not in executed_pairs for pair in route_pairs
+                ):
+                    errors.append({"code": "route_observation_not_executed", "route_id": route.route_id})
+
+            codex_invocations = [
+                item.invocation for item in state.route_receipts if item.invocation.provider == "codex"
+            ] + [item.invocation for item in state.turns if item.invocation.provider == "codex"]
+            if codex_invocations:
+                try:
+                    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+                    entries = ledger["entries"] if isinstance(ledger, dict) else None
+                    if (
+                        not isinstance(ledger, dict)
+                        or ledger.get("run_id") != state.run_id
+                        or ledger.get("engagement_id") != state.engagement_id
+                        or not isinstance(entries, list)
+                    ):
+                        raise ValueError("ledger identity or entries mismatch")
+                except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+                    errors.append({"code": "ledger_missing_or_invalid", "detail": type(exc).__name__})
+                else:
+                    by_id: dict[str, list[dict[str, object]]] = {}
+                    for entry in entries:
+                        if isinstance(entry, dict) and isinstance(entry.get("entry_id"), str):
+                            by_id.setdefault(entry["entry_id"], []).append(entry)
+                    for invocation in codex_invocations:
+                        matches = by_id.get(invocation.invocation_id, [])
+                        if len(matches) != 1:
+                            errors.append(
+                                {
+                                    "code": "ledger_invocation_missing_or_ambiguous",
+                                    "invocation_id": invocation.invocation_id,
+                                }
+                            )
+                            continue
+                        entry = matches[0]
+                        fields = {
+                            "role": invocation.role.value,
+                            "skill_name": invocation.skill_name,
+                            "thread_id": invocation.thread_id,
+                            "input_tokens": invocation.input_tokens,
+                            "output_tokens": invocation.output_tokens,
+                            "cached_input_tokens": invocation.cached_input_tokens,
+                            "events_path": invocation.events_path,
+                            "status": "PASS",
+                        }
+                        if any(entry.get(field) != value for field, value in fields.items()):
+                            errors.append(
+                                {"code": "ledger_invocation_mismatch", "invocation_id": invocation.invocation_id}
+                            )
+                            continue
+                        if not isinstance(invocation.events_path, str) or not invocation.events_path:
+                            errors.append(
+                                {"code": "ledger_events_path_missing", "invocation_id": invocation.invocation_id}
+                            )
+                            continue
+                        event_path = Path(invocation.events_path)
+                        if not event_path.is_absolute():
+                            event_path = run_root / event_path
+                        if event_path.is_symlink():
+                            errors.append(
+                                {"code": "ledger_events_path_invalid", "invocation_id": invocation.invocation_id}
+                            )
+                            continue
+                        try:
+                            resolved_event = event_path.resolve(strict=True)
+                        except OSError:
+                            errors.append(
+                                {"code": "ledger_events_path_missing", "invocation_id": invocation.invocation_id}
+                            )
+                            continue
+                        if (
+                            not resolved_event.is_relative_to(run_root)
+                            or not resolved_event.is_file()
+                            or resolved_event.is_symlink()
+                        ):
+                            errors.append(
+                                {"code": "ledger_events_path_invalid", "invocation_id": invocation.invocation_id}
+                            )
+        if mismatches:
+            errors.append({"code": "receipt_summary_mismatch", "fields": sorted(mismatches)})
+
+        return {
+            "required": True,
+            "agent_mode": agent_mode,
+            "state_path": str(state_path),
+            "ledger_path": str(ledger_path) if ledger_path.is_file() else None,
+            "state_loaded": state is not None,
+            "receipt_summary_mismatches": sorted(mismatches),
+            "errors": errors,
+            "passed": not errors,
+        }
+
+    @staticmethod
+    def _finalize_agent_receipt(context: dict[str, Any], *, agent_mode: str = "disabled") -> None:
         receipt_value = context.get("agent_loop_receipt")
         if not isinstance(receipt_value, str):
             return
@@ -1159,6 +1594,12 @@ class HuntEngine:
             return
         if not isinstance(receipt, dict):
             return
+        artifact_binding_gate = HuntEngine._agent_receipt_artifact_binding(
+            path,
+            receipt,
+            context,
+            agent_mode=agent_mode,
+        )
         packs = context.get("finding_packs", {})
         reports = context.get("reports", {})
         pack_receipts: dict[str, dict[str, object]] = {}
@@ -1193,14 +1634,135 @@ class HuntEngine:
         confirmed = receipt.get("confirmed_outcomes", [])
         killed = receipt.get("killed_outcomes", [])
         classes = receipt.get("confirmed_vulnerability_classes", [])
-        merged = receipt.get("same_fix_merged_clusters", [])
+        confirmed_merged = receipt.get("same_fix_merged_confirmed_clusters", [])
+        typed_kinds = receipt.get("typed_action_kinds_executed", [])
+        outcomes = [item for item in context.get("validation_outcomes", []) if isinstance(item, ValidationOutcome)]
+        clusters = [item for item in context.get("root_cause_clusters", []) if isinstance(item, RootCauseCluster)]
+        primary_confirmed_ids = HuntEngine._primary_confirmed_finding_ids(outcomes, clusters)
+        required_follow_ups = {"browser_navigate", "proxy_replay", "http_request", "tool_task"}
+        coordinator_routes = receipt.get("coordinator_routes", [])
+        nonfallback_routes = (
+            [item for item in coordinator_routes if isinstance(item, dict) and item.get("fallback") is False]
+            if isinstance(coordinator_routes, list)
+            else []
+        )
+        dynamic_routes = (
+            [
+                item
+                for item in coordinator_routes
+                if isinstance(item, dict)
+                and item.get("fallback") is False
+                and isinstance(item.get("invocation"), dict)
+                and item["invocation"].get("provider") == "codex"
+            ]
+            if isinstance(coordinator_routes, list)
+            else []
+        )
+
+        def complete_route(item: dict[str, object]) -> bool:
+            action_ids = item.get("selected_action_ids")
+            observation_ids = item.get("observation_ids")
+            return (
+                item.get("status") == "completed"
+                and isinstance(action_ids, list)
+                and bool(action_ids)
+                and all(isinstance(action_id, str) and action_id for action_id in action_ids)
+                and isinstance(observation_ids, list)
+                and bool(observation_ids)
+                and len(observation_ids) == len(action_ids)
+                and all(isinstance(observation_id, str) and observation_id for observation_id in observation_ids)
+            )
+
+        execution_receipts = receipt.get("agent_execution_receipts", [])
+        completed_codex_coordinator = any(
+            complete_route(item)
+            and isinstance(item.get("invocation"), dict)
+            and item["invocation"].get("role") == AgentRole.COORDINATOR.value
+            and item["invocation"].get("provider") == "codex"
+            and item["invocation"].get("status") == "PASS"
+            for item in dynamic_routes
+        )
+        valid_execution_receipts: list[dict[str, object]] = []
+        if isinstance(execution_receipts, list):
+            for item in execution_receipts:
+                if not isinstance(item, dict):
+                    continue
+                role = item.get("agent_role")
+                if (
+                    isinstance(role, str)
+                    and role in HuntEngine.REQUIRED_CODEX_AGENT_ROLES
+                    and item.get("invocation_role") == role
+                    and item.get("provider") == "codex"
+                    and item.get("invocation_status") == "PASS"
+                    and item.get("observation_status") == "executed"
+                    and isinstance(item.get("observation_id"), str)
+                    and bool(item["observation_id"])
+                ):
+                    valid_execution_receipts.append(item)
+        present_required_roles = {
+            str(item["agent_role"]) for item in valid_execution_receipts if isinstance(item.get("agent_role"), str)
+        }
+        required_agent_roles = sorted(HuntEngine.REQUIRED_CODEX_AGENT_ROLES)
+        present_agent_roles = sorted(present_required_roles)
+        missing_agent_roles = sorted(HuntEngine.REQUIRED_CODEX_AGENT_ROLES - present_required_roles)
+        required_codex_agent_roles_valid = not missing_agent_roles
+        present_named_core_roles = HuntEngine.NAMED_CORE_CODEX_AGENT_ROLES.intersection(present_required_roles)
+        missing_named_core_roles = HuntEngine.NAMED_CORE_CODEX_AGENT_ROLES - present_required_roles
+        named_core_codex_agent_roles_valid = not missing_named_core_roles
+
+        engagement_mode = receipt.get("engagement_mode")
+        required_agent_skills = (
+            HuntEngine.REQUIRED_LAB_AGENT_SKILLS
+            if engagement_mode == EngagementMode.LAB.value
+            else HuntEngine.REQUIRED_PROGRAM_AGENT_SKILLS
+            if engagement_mode == EngagementMode.PROGRAM.value
+            else frozenset()
+        )
+        present_agent_skills = {
+            str(item["skill_name"])
+            for item in valid_execution_receipts
+            if isinstance(item.get("skill_name"), str) and item["skill_name"]
+        }
+        missing_agent_skills = required_agent_skills - present_agent_skills
+        required_codex_agent_skills_valid = bool(required_agent_skills) and not missing_agent_skills
+
+        declared_dynamic_count = receipt.get("dynamic_coordinator_route_count", 0)
+        dynamic_routes_valid = (
+            isinstance(declared_dynamic_count, int)
+            and not isinstance(declared_dynamic_count, bool)
+            and declared_dynamic_count >= 3
+            and declared_dynamic_count == len(dynamic_routes)
+            and len(nonfallback_routes) == len(dynamic_routes)
+            and all(complete_route(item) for item in nonfallback_routes)
+            and completed_codex_coordinator
+        )
+        routing_required = agent_mode == "codex"
+        acceptance_exceptions: dict[str, str] = {}
+        if not routing_required:
+            acceptance_exceptions["dynamic_coordinator_routes"] = (
+                "not required for deterministic policy E2E; no dynamic Codex routing is claimed"
+            )
+            acceptance_exceptions["required_codex_agent_roles"] = (
+                "not required for deterministic policy E2E; no Codex specialist invocation is claimed"
+            )
+            acceptance_exceptions["named_core_codex_agent_roles"] = (
+                "not required for deterministic policy E2E; no Codex specialist invocation is claimed"
+            )
+            acceptance_exceptions["required_codex_agent_skills"] = (
+                "not required for deterministic policy E2E; no Codex Skill invocation is claimed"
+            )
         acceptance = {
             "at_least_six_specialists": int(receipt.get("participating_agent_count", 0)) >= 6,
+            "required_codex_agent_roles": required_codex_agent_roles_valid,
+            "named_core_codex_agent_roles": named_core_codex_agent_roles_valid,
+            "required_codex_agent_skills": required_codex_agent_skills_valid,
             "at_least_three_plan_execute_observe_rounds": int(receipt.get("round_count", 0)) >= 3,
             "typed_network_or_browser_action_executed": bool(receipt.get("network_or_browser_actions_executed")),
+            "agent_follow_up_action_types_executed": isinstance(typed_kinds, list)
+            and required_follow_ups.issubset(set(typed_kinds)),
             "at_least_four_vulnerability_classes_confirmed": isinstance(classes, list) and len(classes) >= 4,
             "at_least_three_false_candidates_killed": isinstance(killed, list) and len(killed) >= 3,
-            "same_fix_candidates_merged": isinstance(merged, list) and bool(merged),
+            "same_fix_candidates_merged": isinstance(confirmed_merged, list) and bool(confirmed_merged),
             "evidence_packs_complete": isinstance(confirmed, list)
             and all(
                 isinstance(item, dict)
@@ -1208,18 +1770,72 @@ class HuntEngine:
                 and pack_receipts.get(item["finding_id"], {}).get("gate_passed") is True
                 for item in confirmed
             ),
-            "reports_complete_for_primary_root_causes": bool(report_receipts)
+            "reports_complete_for_primary_root_causes": bool(primary_confirmed_ids)
+            and set(report_receipts) == set(primary_confirmed_ids)
             and all(
                 value["markdown_exists"] is True and value["html_exists"] is True for value in report_receipts.values()
             ),
             "interrupted_chain_resumed": int(receipt.get("resume_count", 0)) >= 1,
+            "dynamic_coordinator_routes": dynamic_routes_valid,
         }
+        acceptance_passed = (
+            all(passed or check_name in acceptance_exceptions for check_name, passed in acceptance.items())
+            and artifact_binding_gate["passed"] is True
+        )
         receipt.update(
             {
                 "evidence_packs": pack_receipts,
                 "reports": report_receipts,
+                "primary_confirmed_finding_ids": primary_confirmed_ids,
                 "acceptance_checks": acceptance,
-                "acceptance_passed": all(acceptance.values()),
+                "acceptance_exceptions": acceptance_exceptions,
+                "dynamic_coordinator_route_gate": {
+                    "agent_mode": agent_mode,
+                    "required": routing_required,
+                    "minimum_completed_routes": 3,
+                    "declared_dynamic_route_count": declared_dynamic_count,
+                    "observed_dynamic_route_count": len(dynamic_routes),
+                    "observed_nonfallback_route_count": len(nonfallback_routes),
+                    "valid_completed_route_count": sum(complete_route(item) for item in nonfallback_routes),
+                    "passed": dynamic_routes_valid,
+                    "exception": acceptance_exceptions.get("dynamic_coordinator_routes"),
+                },
+                "required_codex_agent_role_gate": {
+                    "agent_mode": agent_mode,
+                    "required": routing_required,
+                    "required_roles": required_agent_roles,
+                    "present_roles": present_agent_roles,
+                    "missing_roles": missing_agent_roles,
+                    "named_core_roles": sorted(HuntEngine.NAMED_CORE_CODEX_AGENT_ROLES),
+                    "present_named_core_roles": sorted(present_named_core_roles),
+                    "missing_named_core_roles": sorted(missing_named_core_roles),
+                    "execution_receipt_count": len(execution_receipts) if isinstance(execution_receipts, list) else 0,
+                    "valid_codex_execution_receipt_count": len(valid_execution_receipts),
+                    "passed": required_codex_agent_roles_valid,
+                    "exception": acceptance_exceptions.get("required_codex_agent_roles"),
+                },
+                "named_core_codex_agent_role_gate": {
+                    "agent_mode": agent_mode,
+                    "required": routing_required,
+                    "required_roles": sorted(HuntEngine.NAMED_CORE_CODEX_AGENT_ROLES),
+                    "present_roles": sorted(present_named_core_roles),
+                    "missing_roles": sorted(missing_named_core_roles),
+                    "passed": named_core_codex_agent_roles_valid,
+                    "exception": acceptance_exceptions.get("named_core_codex_agent_roles"),
+                },
+                "required_codex_agent_skill_gate": {
+                    "agent_mode": agent_mode,
+                    "required": routing_required,
+                    "engagement_mode": engagement_mode,
+                    "required_skills": sorted(required_agent_skills),
+                    "present_skills": sorted(present_agent_skills),
+                    "missing_skills": sorted(missing_agent_skills),
+                    "expected_skill_count": len(required_agent_skills),
+                    "passed": required_codex_agent_skills_valid,
+                    "exception": acceptance_exceptions.get("required_codex_agent_skills"),
+                },
+                "artifact_binding_gate": artifact_binding_gate,
+                "acceptance_passed": acceptance_passed,
             }
         )
         atomic_write_json(path, receipt)
@@ -1460,7 +2076,7 @@ class HuntEngine:
             atomic_write_json(phase_path, reports)
         elif phase is PhaseName.HUMAN_REVIEW_READY:
             findings = [item for item in context.get("findings", []) if isinstance(item, Finding)]
-            self._finalize_agent_receipt(context)
+            self._finalize_agent_receipt(context, agent_mode=self.agent_mode)
             atomic_write_json(
                 phase_path,
                 {
@@ -1778,7 +2394,7 @@ class HuntEngine:
                 )
         elif phase is PhaseName.HUMAN_REVIEW_READY:
             findings = [item for item in context.get("findings", []) if isinstance(item, Finding)]
-            self._finalize_agent_receipt(context)
+            self._finalize_agent_receipt(context, agent_mode=self.agent_mode)
             atomic_write_json(
                 phase_path,
                 {

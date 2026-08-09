@@ -5,7 +5,7 @@ from __future__ import annotations
 import ipaddress
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 
 from budobugs.core.identifiers import new_id
 from budobugs.models import Engagement, EngagementMode, MutationLevel, ResourceRisk, ToolDefinition
@@ -17,6 +17,24 @@ _MUTATION_ORDER = {
     MutationLevel.HIGH: 3,
 }
 _RISK_ORDER = {ResourceRisk.LOW: 0, ResourceRisk.MEDIUM: 1, ResourceRisk.HIGH: 2}
+_LAB_DOCKER_HOSTS = {
+    "crapi-chatbot",
+    "crapi-chromadb",
+    "crapi-community",
+    "crapi-identity",
+    "crapi-keygen",
+    "crapi-mailhog",
+    "crapi-mongo",
+    "crapi-postgres",
+    "crapi-web",
+    "crapi-workshop",
+    "fixture",
+    "juice-shop",
+    "loopback-proxy",
+    "webgoat",
+    "zap",
+    "zap-automation",
+}
 
 
 class PolicyDenied(PermissionError):
@@ -45,12 +63,12 @@ def _origin(value: str) -> tuple[str, str, int] | None:
 
 
 def _is_loopback_or_private(host: str) -> bool:
-    if host in {"localhost", "host.docker.internal"} or "." not in host:
+    if host in {"localhost", "host.docker.internal", *_LAB_DOCKER_HOSTS}:
         return True
     try:
         address = ipaddress.ip_address(host)
     except ValueError:
-        return host.endswith((".localhost", ".local", ".test"))
+        return host.endswith((".localhost", ".test"))
     return address.is_loopback or address.is_private or address.is_link_local
 
 
@@ -93,6 +111,23 @@ def target_allowed(engagement: Engagement, target: str) -> PolicyDecision:
     return PolicyDecision(decision_id, True, "target is inside the authorized engagement")
 
 
+def websocket_target_allowed(engagement: Engagement, target: str) -> PolicyDecision:
+    """Map a credential-free WebSocket URL to its HTTP(S) origin and reuse engagement policy."""
+
+    parsed = urlsplit(target)
+    if parsed.scheme.lower() not in {"ws", "wss"} or not parsed.hostname:
+        return PolicyDecision(new_id("policy"), False, "WebSocket target must use WS or WSS")
+    if parsed.username is not None or parsed.password is not None:
+        return PolicyDecision(new_id("policy"), False, "WebSocket target must be credential-free")
+    try:
+        _ = parsed.port
+    except ValueError:
+        return PolicyDecision(new_id("policy"), False, "WebSocket target contains an invalid port")
+    mapped_scheme = "https" if parsed.scheme.lower() == "wss" else "http"
+    mapped = urlunsplit((mapped_scheme, parsed.netloc, parsed.path, parsed.query, ""))
+    return target_allowed(engagement, mapped)
+
+
 def tool_allowed(
     engagement: Engagement,
     tool: ToolDefinition,
@@ -101,6 +136,10 @@ def tool_allowed(
     decision_id = new_id("policy")
     if engagement.selected_mode not in tool.supported_modes:
         return PolicyDecision(decision_id, False, "tool does not support the selected mode")
+    if engagement.selected_mode is EngagementMode.SOURCE and (
+        not tool.network_behavior or any(behavior.strip().lower() != "none" for behavior in tool.network_behavior)
+    ):
+        return PolicyDecision(decision_id, False, "source mode requires an explicit offline tool network contract")
     if target is not None:
         scope = target_allowed(engagement, target)
         if not scope.allowed:

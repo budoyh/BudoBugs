@@ -51,6 +51,8 @@ class Engagement(BudoModel):
     optional_allowed_subdomains: list[str] = Field(default_factory=list)
     excluded_targets: list[str] = Field(default_factory=list)
     testing_accounts_secret_refs: dict[str, str] = Field(default_factory=dict)
+    safe_experiment_secret_refs: dict[str, str] = Field(default_factory=dict)
+    websocket_experiment_secret_refs: dict[str, str] = Field(default_factory=dict)
     selected_mode: EngagementMode
     optional_rate_profile: str | None = Field(default=None, max_length=100)
     optional_notes: str | None = Field(default=None, max_length=10000)
@@ -75,6 +77,16 @@ class Engagement(BudoModel):
                 raise ValueError(f"invalid host pattern: {value!r}")
             normalized.append(item)
         return list(dict.fromkeys(normalized))
+
+    @field_validator("safe_experiment_secret_refs", "websocket_experiment_secret_refs")
+    @classmethod
+    def validate_experiment_references(cls, values: dict[str, str]) -> dict[str, str]:
+        for template_id, reference in values.items():
+            if not _SAFE_ID.fullmatch(template_id):
+                raise ValueError("safe experiment IDs must use safe filename characters")
+            if not reference or any(char in reference for char in ("\x00", "\r", "\n")):
+                raise ValueError("safe experiment secret reference is invalid")
+        return values
 
     @model_validator(mode="after")
     def validate_target_kinds(self) -> Engagement:

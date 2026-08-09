@@ -37,7 +37,7 @@
   <h2>关键截图</h2>
   {% if screenshots %}{% for screenshot in screenshots %}<figure><img src="../{{ screenshot }}" alt="关键复现截图" style="max-width:100%"><figcaption><code>{{ screenshot }}</code></figcaption></figure>{% endfor %}{% else %}<p>未声明关键截图；请复核请求、响应和 trace。</p>{% endif %}
   <h2>清理</h2><p>{{ finding.cleanup_status }}</p>
-  <h2>修复建议</h2><p>在服务端按认证主体、租户和对象所有权执行逐对象授权，并加入跨账号回归测试。</p>
+  <h2>修复建议</h2><ul>{% for item in remediation %}<li>{{ item }}</li>{% endfor %}</ul>
   <h2>人工复核清单</h2><ul><li>授权目标和测试账号准确</li><li>请求与响应可重复</li><li>正常/负对照仍成立</li><li>影响、CVSS 和重复风险未夸大</li><li>秘密和个人数据已脱敏</li><li>最终提交由人工完成</li></ul>
 </body>
 </html>

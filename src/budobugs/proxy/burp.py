@@ -11,14 +11,21 @@ from budobugs.core.identifiers import new_id
 from budobugs.core.io import atomic_write_json
 from budobugs.core.policy import require_allowed, target_allowed
 from budobugs.models import Engagement, HttpExchange
-from budobugs.proxy.base import ProxyBackend, ProxyCapabilities, ProxyUnavailable
+from budobugs.proxy.base import CredentialSubstitutedReplay, ProxyBackend, ProxyCapabilities, ProxyUnavailable
 from budobugs.proxy.mcp import McpHttpClient
 from budobugs.traffic.normalization import normalize_exchange
 
 
 class BurpMcpAdapter(ProxyBackend):
     name = "burp-mcp"
-    capabilities = ProxyCapabilities(history=True, replay=True, http2=True, active_automation=False, export=True)
+    capabilities = ProxyCapabilities(
+        history=True,
+        replay=True,
+        http2=True,
+        active_automation=False,
+        export=True,
+        credential_substitution_replay=True,
+    )
 
     def __init__(self, url: str, *, timeout: float = 20.0) -> None:
         self.client = McpHttpClient(url, timeout=timeout)
@@ -124,6 +131,36 @@ class BurpMcpAdapter(ProxyBackend):
             raise ProxyUnavailable("Burp MCP replay returned no request/response evidence")
         result = _to_exchange(rows[0], engagement.engagement_id).model_copy(
             update={"account_alias": account_alias or exchange.account_alias}
+        )
+        require_allowed(target_allowed(engagement, result.url))
+        self._history[result.exchange_id] = result
+        return result
+
+    async def replay_with_request(
+        self,
+        engagement: Engagement,
+        request: CredentialSubstitutedReplay,
+    ) -> HttpExchange:
+        """Use a Burp MCP sender with an explicit, substituted request payload."""
+
+        exchange = request.exchange
+        require_allowed(target_allowed(engagement, exchange.url))
+        payload = await self.call_capability(
+            ["send_http_request", "repeat_http_request", "replay_http_request"],
+            {
+                "method": exchange.method,
+                "url": exchange.url,
+                "headers": request.headers,
+                "body": request.body or "",
+                "httpVersion": exchange.http_version or "HTTP/1.1",
+                "followRedirects": False,
+            },
+        )
+        rows = _rows(payload)
+        if not rows:
+            raise ProxyUnavailable("Burp MCP credential-substituted replay returned no request/response evidence")
+        result = _to_exchange(rows[0], engagement.engagement_id).model_copy(
+            update={"account_alias": request.account_alias}
         )
         require_allowed(target_allowed(engagement, result.url))
         self._history[result.exchange_id] = result

@@ -16,6 +16,7 @@ from budobugs.core.io import atomic_write_json
 from budobugs.core.policy import require_allowed, target_allowed
 from budobugs.models import Engagement, HttpExchange
 from budobugs.proxy.base import (
+    CredentialSubstitutedReplay,
     ProxyBackend,
     ProxyCapabilities,
     ProxyUnavailable,
@@ -26,7 +27,14 @@ from budobugs.traffic.normalization import normalize_exchange
 
 class CaidoClient(ProxyBackend):
     name = "caido"
-    capabilities = ProxyCapabilities(history=True, replay=True, http2=True, active_automation=True, export=True)
+    capabilities = ProxyCapabilities(
+        history=True,
+        replay=True,
+        http2=True,
+        active_automation=True,
+        export=True,
+        credential_substitution_replay=True,
+    )
 
     def __init__(
         self,
@@ -112,6 +120,38 @@ class CaidoClient(ProxyBackend):
             raise ProxyUnavailable(f"Caido replay did not return an exchange: {payload}")
         result = self._convert(replay, engagement.engagement_id).model_copy(
             update={"account_alias": account_alias or exchange.account_alias}
+        )
+        require_allowed(target_allowed(engagement, result.url))
+        self._history[result.exchange_id] = result
+        return result
+
+    async def replay_with_request(
+        self,
+        engagement: Engagement,
+        request: CredentialSubstitutedReplay,
+    ) -> HttpExchange:
+        """Ask the official SDK bridge to send the explicit fresh request."""
+
+        exchange = request.exchange
+        require_allowed(target_allowed(engagement, exchange.url))
+        payload = await self._bridge(
+            {
+                "action": "replay_with_request",
+                "url": self.instance_url,
+                "history_id": exchange.exchange_id,
+                "request": {
+                    "method": exchange.method,
+                    "url": exchange.url,
+                    "headers": request.headers,
+                    "body": request.body,
+                },
+            }
+        )
+        replay = payload.get("exchange") if isinstance(payload, dict) else None
+        if not isinstance(replay, dict):
+            raise ProxyUnavailable(f"Caido credential-substituted replay did not return an exchange: {payload}")
+        result = self._convert(replay, engagement.engagement_id).model_copy(
+            update={"account_alias": request.account_alias}
         )
         require_allowed(target_allowed(engagement, result.url))
         self._history[result.exchange_id] = result

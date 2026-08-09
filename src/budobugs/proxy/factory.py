@@ -82,6 +82,7 @@ class ProxyBackendFactory:
                 "http2": selected_backend.capabilities.http2,
                 "active_automation": selected_backend.capabilities.active_automation,
                 "export": selected_backend.capabilities.export,
+                "credential_substitution_replay": selected_backend.capabilities.credential_substitution_replay,
             },
             "detail": selected_detail,
             "attempted": attempts,

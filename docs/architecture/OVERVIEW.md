@@ -35,11 +35,17 @@ HuntEngine 实现从 `INIT` 到 `HUMAN_REVIEW_READY` 的阶段状态机。每阶
 再写入 Schema 化输出和结束事件；中断后 `--resume` 读取同一 run 的已完成阶段，而不是创建
 一个看似成功的新 run。`--phase recon` 是可验证的中断点。
 
-12 个 Agent 配置位于 `.codex/agents/`：coordinator、recon、traffic、browser、authorization、
-API/session、web client、business logic、source review、evidence validation、adversarial critic 和
-report writer。Tool operation 由受控 wrapper 加 `tool-operator` Skill 承担；成本/上下文由
-coordinator 的路由和预算策略承担。它们共享 Schema 工件而非隐式对话；critic 与候选生成职责
-分离。`.agents/skills/` 的 14 个 Skills 提供输入/输出契约和可执行校验器。
+12 个 Agent 配置位于 `.codex/agents/`。其中 coordinator、recon、traffic、browser、
+authorization、API/session、web client、business logic、evidence validation 和 adversarial critic
+由 hunt 的类型化 action catalog 调度；source review 与 report writer 分别属于 source/report
+阶段，不计作 Agent Loop 已执行角色。Tool operation 由受控 wrapper 加 `tool-operator` Skill
+承担；成本/上下文由 coordinator 的路由和预算策略承担。它们共享 Schema 工件而非隐式对话；
+critic 与候选生成职责分离。`.agents/skills/` 的 14 个 Skills 只有在对应 action receipt 中出现时
+才算实际参与，单纯可发现不代表已执行。
+
+正常 Agent Loop 由 coordinator 基于 durable Observation，在当前确有 typed safe action 的
+allow-listed roles 中选择下一专业角色；route assignment 在专业 Agent 执行前持久化，同角色可连续
+完成多个高增益动作。恢复会复用 pending assignment，静态 schedule 只用于模型不可用的明确 fallback。
 
 ## 权限和工具边界
 
@@ -49,8 +55,9 @@ Profile 只是安装集合，不是执行授权。`lab`、`program`、`source` �
 - Web/API scope 使用 scheme + normalized host + effective port；URL 中的用户名/密码拒绝。
 - Optional subdomain 仍必须匹配 root 的 scheme/port；excluded target 优先拒绝。
 - Source path resolve 后必须位于授权 root，路径遍历或 sibling prefix 不通过。
-- Program 阻断 medium/high mutation、high resource risk 和 lab-ai；两账号动态验证为 scoped
-  GET-only。
+- Program 阻断未登记的 mutation、high resource risk 和 lab-ai；默认以 scoped read-only
+  动作为主。授权前登记的自有数据 `SafeExperimentTemplate` 可以执行可逆低变更写请求，
+  但必须闭合正常对照、重复效果、负对照和清理验证，否则只能 `HOLD/KILL`。
 - Lab 网络目标必须是 loopback/private/Docker 名称；浏览器 route guard 同时拦截跨 scope
   subresource 和 redirect。
 

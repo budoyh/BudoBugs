@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from urllib.parse import urlsplit
 
-from budobugs.core.identifiers import new_id
-from budobugs.core.policy import require_allowed, target_allowed
+from budobugs.core.io import sha256_bytes
+from budobugs.core.policy import require_allowed, target_allowed, websocket_target_allowed
 from budobugs.models import Engagement, HttpExchange
 from budobugs.traffic.normalization import normalize_exchange
 
@@ -28,7 +29,7 @@ def import_har(path: Path, engagement: Engagement, *, max_bytes: int = 100 * 102
     if not isinstance(entries, list):
         raise TrafficImportError("HAR entries must be a list")
     exchanges: list[HttpExchange] = []
-    for entry in entries:
+    for entry_index, entry in enumerate(entries):
         if not isinstance(entry, dict):
             continue
         request = entry.get("request", {})
@@ -36,22 +37,43 @@ def import_har(path: Path, engagement: Engagement, *, max_bytes: int = 100 * 102
         if not isinstance(request, dict) or not isinstance(response, dict):
             continue
         url = str(request.get("url", ""))
-        require_allowed(target_allowed(engagement, url))
+        require_allowed(
+            websocket_target_allowed(engagement, url)
+            if urlsplit(url).scheme.casefold() in {"ws", "wss"}
+            else target_allowed(engagement, url)
+        )
         request_headers = _headers(request.get("headers"))
         response_headers = _headers(response.get("headers"))
         request_body = _nested_text(request.get("postData"))
         response_body = _nested_text(response.get("content"))
+        response_status = max(0, int(response.get("status", 0)))
+        elapsed_ms = max(0.0, float(entry.get("time", 0.0)))
+        identity = json.dumps(
+            {
+                "entry_index": entry_index,
+                "method": str(request.get("method", "GET")).upper(),
+                "url": url,
+                "request_headers": request_headers,
+                "request_body": request_body,
+                "response_status": response_status,
+                "response_headers": response_headers,
+                "response_body": response_body,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
         exchange = HttpExchange(
-            exchange_id=new_id("http"),
+            exchange_id=f"http-har-{sha256_bytes(identity)[:24]}",
             engagement_id=engagement.engagement_id,
             method=str(request.get("method", "GET")).upper(),
             url=url,
             request_headers=request_headers,
             request_body=request_body,
-            response_status=int(response.get("status", 0)),
+            response_status=response_status,
             response_headers=response_headers,
             response_body=response_body,
-            elapsed_ms=float(entry.get("time", 0.0)),
+            elapsed_ms=elapsed_ms,
             source="har",
         )
         exchanges.append(normalize_exchange(exchange))

@@ -1,6 +1,6 @@
 {
   "ecosystem": "python",
-  "generated_at": "2026-08-09T00:57:33.641234+00:00",
+  "generated_at": "2026-08-09T10:58:34.009615+00:00",
   "packages": [
     {
       "declared_license": "MIT",
@@ -760,6 +760,20 @@
         "uvicorn-0.52.1.dist-info/licenses/LICENSE.md"
       ],
       "version": "0.52.1"
+    },
+    {
+      "declared_license": "BSD-3-Clause",
+      "homepage": "Homepage, https://github.com/python-websockets/websockets",
+      "license_classifiers": [
+        "OSI Approved :: BSD License"
+      ],
+      "license_expression": null,
+      "metadata_source": "installed-distribution",
+      "name": "websockets",
+      "notice_files": [
+        "websockets-15.0.1.dist-info/LICENSE"
+      ],
+      "version": "15.0.1"
     }
   ],
   "schema_version": 1,

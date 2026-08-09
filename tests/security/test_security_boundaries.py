@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from scripts import secret_scan
 
 from budobugs.browser.session import BrowserSessionManager
-from budobugs.core.policy import target_allowed
+from budobugs.core.policy import target_allowed, websocket_target_allowed
 from budobugs.labs.manager import LabManager
 from budobugs.models import Engagement, EngagementMode, PhaseName, Target
 from budobugs.orchestration.engine import HuntEngine
@@ -44,6 +44,8 @@ def test_network_scope_is_origin_bound_and_rejects_url_credentials(lab_engagemen
     assert not target_allowed(lab_engagement, "https://127.0.0.1:8765/scheme-change").allowed
     assert not target_allowed(lab_engagement, "http://user@127.0.0.1:8765/credential-smuggling").allowed
     assert not target_allowed(lab_engagement, "file:///etc/passwd").allowed
+    assert websocket_target_allowed(lab_engagement, "ws://127.0.0.1:8765/ws/objects/1").allowed
+    assert not websocket_target_allowed(lab_engagement, "wss://example.com/ws").allowed
 
 
 def test_engagement_rejects_credentials_and_invalid_ports_in_roots() -> None:
@@ -82,10 +84,13 @@ async def test_browser_route_guard_blocks_every_cross_scope_subresource(
             self.action = "abort"
 
     allowed = Route("http://127.0.0.1:8765/app.js")
+    allowed_websocket = Route("ws://127.0.0.1:8765/ws/objects/1")
     blocked = Route("https://example.com/tracker.js")
     await manager._scope_route(allowed)  # type: ignore[arg-type]
+    await manager._scope_route(allowed_websocket)  # type: ignore[arg-type]
     await manager._scope_route(blocked)  # type: ignore[arg-type]
     assert allowed.action == "continue"
+    assert allowed_websocket.action == "continue"
     assert blocked.action == "abort"
 
 

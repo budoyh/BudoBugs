@@ -5,7 +5,13 @@ import sys
 from pathlib import Path
 
 import pytest
-from scripts import generate_license_inventory, hexstrike_lab_ai
+from scripts import (
+    generate_fixture_vex,
+    generate_license_inventory,
+    generate_release_metadata,
+    hexstrike_lab_ai,
+    verify_release,
+)
 
 
 def test_python_license_inventory_reuses_only_exact_committed_metadata(tmp_path: Path, monkeypatch) -> None:
@@ -102,3 +108,96 @@ def test_hexstrike_early_exit_removes_stale_state(tmp_path: Path, monkeypatch) -
         hexstrike_lab_ai.up()
 
     assert not hexstrike_lab_ai.STATE_FILE.exists()
+
+
+def test_release_provenance_rejects_changed_source_snapshot(tmp_path: Path, monkeypatch) -> None:
+    source = tmp_path / "src" / "budobugs"
+    source.mkdir(parents=True)
+    module = source / "feature.py"
+    module.write_text("VALUE = 1\n", encoding="utf-8")
+    for relative in (
+        ".github/workflows/ci.yml",
+        "config/semgrep.yml",
+        "docs/operations/TESTING.md",
+        "scripts/check_release.py",
+        "tests/unit/test_feature.py",
+    ):
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("checked input\n", encoding="utf-8")
+    monkeypatch.setattr(generate_release_metadata, "ROOT", tmp_path)
+    monkeypatch.setattr(verify_release, "ROOT", tmp_path)
+    provenance = {"source_snapshot": generate_release_metadata.source_snapshot(tmp_path)}
+
+    assert {
+        ".github/workflows/ci.yml",
+        "config/semgrep.yml",
+        "docs/operations/TESTING.md",
+        "scripts/check_release.py",
+        "src/budobugs/feature.py",
+        "tests/unit/test_feature.py",
+    }.issubset(provenance["source_snapshot"]["included_paths"])
+
+    verify_release.validate_source_snapshot(provenance)
+
+    module.write_text("VALUE = 2\n", encoding="utf-8")
+    with pytest.raises(SystemExit, match="1"):
+        verify_release.validate_source_snapshot(provenance)
+
+
+def test_release_provenance_snapshot_excludes_its_own_artifacts(tmp_path: Path, monkeypatch) -> None:
+    source = tmp_path / "src" / "budobugs"
+    source.mkdir(parents=True)
+    (source / "feature.py").write_text("VALUE = 1\n", encoding="utf-8")
+    release_artifact = tmp_path / "release" / "provenance.json"
+    release_artifact.parent.mkdir()
+    release_artifact.write_text('{"first": true}\n', encoding="utf-8")
+    monkeypatch.setattr(verify_release, "ROOT", tmp_path)
+    snapshot = generate_release_metadata.source_snapshot(tmp_path)
+    provenance = {"source_snapshot": snapshot}
+
+    release_artifact.write_text('{"second": true}\n', encoding="utf-8")
+
+    assert all(not path.startswith("release/") for path in snapshot["included_paths"])
+    verify_release.validate_source_snapshot(provenance)
+
+
+def _write_fixture_build_context(root: Path) -> tuple[Path, Path, Path, Path]:
+    dockerfile = root / "docker" / "labs" / "fixture" / "Dockerfile"
+    requirements = root / "docker" / "labs" / "fixture" / "requirements.lock"
+    fixture = root / "src" / "budobugs" / "labs" / "fixture_app.py"
+    license_file = root / "LICENSE"
+    dockerfile.parent.mkdir(parents=True)
+    fixture.parent.mkdir(parents=True)
+    dockerfile.write_text(
+        "COPY docker/labs/fixture/requirements.lock ./requirements.lock\n"
+        "COPY src/budobugs/labs/fixture_app.py ./fixture_app.py\n"
+        "COPY LICENSE /licenses/BudoBugs/LICENSE\n",
+        encoding="utf-8",
+    )
+    requirements.write_text("fastapi==1\n", encoding="utf-8")
+    fixture.write_text("app = object()\n", encoding="utf-8")
+    license_file.write_text("Apache-2.0\n", encoding="utf-8")
+    return dockerfile, requirements, fixture, license_file
+
+
+def test_fixture_vex_build_input_snapshot_rejects_a_tampered_copy_source(tmp_path: Path, monkeypatch) -> None:
+    _dockerfile, requirements, _fixture, _license_file = _write_fixture_build_context(tmp_path)
+    monkeypatch.setattr(generate_fixture_vex, "ROOT", tmp_path)
+    monkeypatch.setattr(verify_release, "ROOT", tmp_path)
+    review = {"fixture_build_inputs": generate_fixture_vex.fixture_build_input_snapshot(tmp_path)}
+
+    verify_release.validate_fixture_build_inputs(review)
+
+    requirements.write_text("fastapi==2\n", encoding="utf-8")
+    with pytest.raises(SystemExit, match="1"):
+        verify_release.validate_fixture_build_inputs(review)
+
+
+def test_fixture_vex_rejects_second_product_with_different_subcomponent() -> None:
+    products = [
+        {"@id": "budobugs/fixture:local", "subcomponents": [{"@id": "pkg:apk/alpine/python@3"}]},
+        {"@id": "pkg:oci/fixture@sha256%3Aabc", "subcomponents": [{"@id": "pkg:apk/alpine/sqlite@3"}]},
+    ]
+    with pytest.raises(SystemExit, match="1"):
+        verify_release.validate_vex_products(products, "CVE-2026-0000")

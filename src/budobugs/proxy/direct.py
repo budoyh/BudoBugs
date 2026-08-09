@@ -11,7 +11,7 @@ from budobugs.core.identifiers import new_id
 from budobugs.core.io import atomic_write_json
 from budobugs.core.policy import require_allowed, target_allowed
 from budobugs.models import Engagement, HttpExchange
-from budobugs.proxy.base import ProxyBackend, ProxyCapabilities
+from budobugs.proxy.base import CredentialSubstitutedReplay, ProxyBackend, ProxyCapabilities
 from budobugs.traffic.normalization import normalize_exchange
 
 
@@ -23,6 +23,7 @@ class DirectProxyBackend(ProxyBackend):
         http2=True,
         active_automation=False,
         export=True,
+        credential_substitution_replay=True,
     )
 
     def __init__(self, *, timeout: float = 20.0) -> None:
@@ -120,6 +121,23 @@ class DirectProxyBackend(ProxyBackend):
             headers=exchange.request_headers,
             content=exchange.request_body,
             account_alias=account_alias or exchange.account_alias,
+        )
+
+    async def replay_with_request(
+        self,
+        engagement: Engagement,
+        request: CredentialSubstitutedReplay,
+    ) -> HttpExchange:
+        """Send the already-sanitized explicit request, never history credentials."""
+
+        return await self.send(
+            engagement,
+            request.exchange.method,
+            request.exchange.url,
+            headers=request.headers,
+            content=request.body,
+            account_alias=request.account_alias,
+            source="direct",
         )
 
     async def export(self, destination: Path) -> Path:

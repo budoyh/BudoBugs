@@ -18,17 +18,22 @@ from budobugs import __version__
 from budobugs.core.identifiers import new_id
 from budobugs.core.io import atomic_write_json
 from budobugs.core.paths import WorkspacePaths
-from budobugs.core.policy import target_allowed
+from budobugs.core.policy import target_allowed, websocket_target_allowed
 from budobugs.evidence.pack import pack_finding
 from budobugs.knowledge.vendor import VendorKnowledgeBase, vendor_key
 from budobugs.labs import LabManager
 from budobugs.models import (
+    AuthorizationStatus,
     Engagement,
     EngagementMode,
     OutcomeStatus,
     PhaseName,
     PlatformOutcome,
+    SafeWebSocketExperimentTemplate,
+    SelfOwnedObjectRecipe,
     Target,
+    parse_program_experiment_template,
+    program_experiment_actions,
 )
 from budobugs.orchestration import HuntEngine, RepositoryService
 from budobugs.reporting.generator import ReportGenerator
@@ -262,7 +267,12 @@ def engagement_account_set(
     alias: Annotated[str, typer.Option(help="自有测试账号别名，如 alice/bob。")],
     headers_env: Annotated[
         str,
-        typer.Option(help='包含 {"headers": {...}, "login_url": "..."} JSON 的环境变量名。'),
+        typer.Option(
+            help=(
+                '包含 {"headers": {...}, "login_url": "...", "self_owned_object_recipe": {...}} '
+                "JSON 的环境变量名。recipe 是授权前登记的可逆自有对象生命周期。"
+            ),
+        ),
     ],
     json_output: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
@@ -289,13 +299,160 @@ def engagement_account_set(
         raise typer.BadParameter("account JSON must contain headers or login_url")
     service = _service()
     engagement = service.load_engagement(engagement_id)
+    if engagement.authorization_status is not AuthorizationStatus.DRAFT:
+        raise typer.BadParameter("testing accounts must be configured before the one-time authorization")
+    recipe_payload = payload.get("self_owned_object_recipe") if isinstance(payload, dict) else None
+    if recipe_payload is not None:
+        try:
+            recipe = SelfOwnedObjectRecipe.model_validate(recipe_payload)
+        except ValueError as exc:
+            raise typer.BadParameter(f"self_owned_object_recipe is invalid: {exc}") from exc
+        if recipe.account_alias != alias:
+            raise typer.BadParameter("self_owned_object_recipe account_alias must exactly match --alias")
+        for action in (recipe.create, recipe.verification, recipe.cleanup, recipe.cleanup_verification):
+            decision = target_allowed(engagement, action.target_url)
+            if not decision.allowed:
+                raise typer.BadParameter(f"self_owned_object_recipe action {action.action_id} is out of scope")
     store = SecretStore(service.paths.runtime_home / "secrets" / "fallback.json")
     reference = store.set(f"engagement:{engagement_id}", f"account:{alias}", raw)
     references = dict(engagement.testing_accounts_secret_refs)
     references[alias] = reference
     updated = engagement.model_copy(update={"testing_accounts_secret_refs": references})
     service.save_engagement(updated, actor="account-secret-helper")
-    _emit({"status": "PASS", "alias": alias, "secret_ref": reference}, json_output)
+    _emit(
+        {
+            "status": "PASS",
+            "alias": alias,
+            "secret_ref": reference,
+            "self_owned_object_recipe": "configured" if recipe_payload is not None else "not-configured",
+        },
+        json_output,
+    )
+
+
+@engagement_app.command("experiment-set")
+def engagement_experiment_set(
+    engagement_id: str,
+    spec_env: Annotated[
+        str,
+        typer.Option(
+            help=(
+                "包含 SafeExperimentTemplate 或 SafeWorkflowExperimentTemplate JSON 的环境变量名；"
+                "模板只引用自有账号、精确 URL、正常/重复/负对照和清理动作。"
+            )
+        ),
+    ],
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """一次性登记正式 engagement 可执行的自有数据写操作实验。"""
+
+    raw = os.environ.get(spec_env)
+    if not raw:
+        raise typer.BadParameter(f"environment variable {spec_env} is empty")
+    try:
+        template = parse_program_experiment_template(raw)
+    except ValueError as exc:
+        raise typer.BadParameter(f"safe experiment template is invalid: {exc}") from exc
+    service = _service()
+    engagement = service.load_engagement(engagement_id)
+    if engagement.selected_mode is not EngagementMode.PROGRAM:
+        raise typer.BadParameter("safe HTTP experiments are available only in program mode")
+    if engagement.authorization_status is not AuthorizationStatus.DRAFT:
+        raise typer.BadParameter("safe experiments must be configured before the one-time authorization")
+    actions = program_experiment_actions(template)
+    unknown_accounts = {
+        item.account_alias
+        for item in actions
+        if item.account_alias != "anonymous" and item.account_alias not in engagement.testing_accounts_secret_refs
+    }
+    if unknown_accounts:
+        raise typer.BadParameter(f"template references undeclared self-owned accounts: {sorted(unknown_accounts)}")
+    for action in actions:
+        decision = target_allowed(engagement, action.target_url)
+        if not decision.allowed:
+            raise typer.BadParameter(f"template action {action.action_id} is out of scope: {decision.reason}")
+    store = SecretStore(service.paths.runtime_home / "secrets" / "fallback.json")
+    reference = store.set(
+        f"engagement:{engagement_id}",
+        f"experiment:{template.template_id}",
+        template.model_dump_json(),
+    )
+    references = dict(engagement.safe_experiment_secret_refs)
+    references[template.template_id] = reference
+    updated = engagement.model_copy(update={"safe_experiment_secret_refs": references})
+    service.save_engagement(updated, actor="safe-experiment-helper")
+    _emit(
+        {
+            "status": "PASS",
+            "template_id": template.template_id,
+            "specialist_role": template.specialist_role,
+            "secret_ref": reference,
+        },
+        json_output,
+    )
+
+
+@engagement_app.command("websocket-experiment-set")
+def engagement_websocket_experiment_set(
+    engagement_id: str,
+    spec_env: Annotated[
+        str,
+        typer.Option(
+            help=(
+                "包含 SafeWebSocketExperimentTemplate JSON 的环境变量名；仅允许已声明账号、"
+                "精确同源 WS/WSS URL、正常/重复/拒绝对照。"
+            )
+        ),
+    ],
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """一次性登记正式 engagement 可执行的只读 WebSocket 对照实验。"""
+
+    raw = os.environ.get(spec_env)
+    if not raw:
+        raise typer.BadParameter(f"environment variable {spec_env} is empty")
+    try:
+        template = SafeWebSocketExperimentTemplate.model_validate_json(raw)
+    except ValueError as exc:
+        raise typer.BadParameter(f"safe WebSocket experiment template is invalid: {exc}") from exc
+    service = _service()
+    engagement = service.load_engagement(engagement_id)
+    if engagement.selected_mode is not EngagementMode.PROGRAM:
+        raise typer.BadParameter("safe WebSocket experiments are available only in program mode")
+    if engagement.authorization_status is not AuthorizationStatus.DRAFT:
+        raise typer.BadParameter("safe WebSocket experiments must be configured before the one-time authorization")
+    if template.template_id in engagement.safe_experiment_secret_refs:
+        raise typer.BadParameter("safe WebSocket experiment ID conflicts with an HTTP safe experiment")
+    actions = (template.normal_control, template.experiment, template.negative_control)
+    unknown_accounts = {
+        item.account_alias for item in actions if item.account_alias not in engagement.testing_accounts_secret_refs
+    }
+    if unknown_accounts:
+        raise typer.BadParameter(f"template references undeclared self-owned accounts: {sorted(unknown_accounts)}")
+    for action in actions:
+        decision = websocket_target_allowed(engagement, action.target_url)
+        if not decision.allowed:
+            raise typer.BadParameter(f"template action {action.action_id} is out of scope: {decision.reason}")
+    store = SecretStore(service.paths.runtime_home / "secrets" / "fallback.json")
+    reference = store.set(
+        f"engagement:{engagement_id}",
+        f"websocket-experiment:{template.template_id}",
+        template.model_dump_json(),
+    )
+    references = dict(engagement.websocket_experiment_secret_refs)
+    references[template.template_id] = reference
+    updated = engagement.model_copy(update={"websocket_experiment_secret_refs": references})
+    service.save_engagement(updated, actor="safe-websocket-experiment-helper")
+    _emit(
+        {
+            "status": "PASS",
+            "template_id": template.template_id,
+            "specialist_role": template.specialist_role,
+            "secret_ref": reference,
+            "raw_frames_persisted": False,
+        },
+        json_output,
+    )
 
 
 @app.command("hunt")
@@ -385,6 +542,9 @@ def outcome_record(
     status: Annotated[OutcomeStatus, typer.Option("--status")],
     reward: Annotated[float, typer.Option("--reward", min=0)] = 0,
     reason: Annotated[str, typer.Option("--reason")] = "platform feedback recorded",
+    root_cause_key: Annotated[str | None, typer.Option("--root-cause-key")] = None,
+    exploitation_method: Annotated[str | None, typer.Option("--exploitation-method")] = None,
+    previously_fixed: Annotated[bool, typer.Option("--previously-fixed")] = False,
     json_output: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
     """Persist platform disposition and feed it into future bounty ranking and false-positive rules."""
@@ -399,6 +559,12 @@ def outcome_record(
         status=status,
         reward=reward,
         reason=reason,
+        vulnerability_class=finding.vulnerability_class,
+        root_cause_key=root_cause_key,
+        feature_key=finding.affected_feature,
+        endpoint_family=finding.endpoint_family,
+        exploitation_method=exploitation_method,
+        previously_fixed=previously_fixed,
     )
     knowledge = VendorKnowledgeBase(service.store).record_outcome(engagement, outcome)
     service.audit(

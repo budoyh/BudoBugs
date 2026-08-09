@@ -32,6 +32,9 @@ _WORKFLOWS: dict[int, str] = {}
 _ORDERS: dict[int, dict[str, object]] = {}
 _API_SESSIONS: dict[str, str] = {}
 _REVOKED_SESSIONS: set[str] = set()
+_CORS_TRANSFERS: dict[str, int] = {}
+_CSRF_TRANSFERS: dict[str, int] = {}
+_TRUSTED_ORIGIN = "https://trusted.fixture.invalid"
 
 
 def _reset_state() -> None:
@@ -60,6 +63,11 @@ def _reset_state() -> None:
     )
     _API_SESSIONS.clear()
     _REVOKED_SESSIONS.clear()
+    _CORS_TRANSFERS.clear()
+    _CSRF_TRANSFERS.clear()
+    for identity in _IDENTITIES.values():
+        _CORS_TRANSFERS[identity["alias"]] = 0
+        _CSRF_TRANSFERS[identity["alias"]] = 0
 
 
 _reset_state()
@@ -82,6 +90,10 @@ class GraphqlRequest(BaseModel):
 class ShareRequest(BaseModel):
     file_id: int
     recipient: str
+
+
+class ShareTokenRequest(BaseModel):
+    token: str = Field(min_length=1, max_length=120)
 
 
 def _identity(
@@ -192,6 +204,8 @@ def fixture_schema() -> dict[str, object]:
             "/api/files/{file_id}": {"get": {}},
             "/api/orders/{order_id}/confirm": {"post": {}},
             "/api/session/revoke": {"post": {}},
+            "/api/cors/transfer": {"post": {}},
+            "/api/csrf/transfer": {"post": {}},
         },
     }
 
@@ -391,6 +405,49 @@ def secure_share(
     return str(item["content"])
 
 
+@app.post("/api/share-access")
+def vulnerable_share_json(
+    payload: ShareTokenRequest,
+    identity: Annotated[dict[str, str], Depends(_identity)],
+) -> dict[str, object]:
+    """TEST FIXTURE: JSON workflow consumer omits revoked-share enforcement."""
+
+    share = _SHARES.get(payload.token)
+    if share is None or share["recipient"] != identity["alias"]:
+        raise HTTPException(status_code=403, detail="share recipient required")
+    item = _FILES[int(share["file_id"])]
+    return {
+        "token": payload.token,
+        "content": item["content"],
+        "revoked": share["revoked"],
+        "fixture_issue": "revocation not enforced by JSON share consumer",
+    }
+
+
+@app.post("/api/share-revoke")
+def revoke_share_json(
+    payload: ShareTokenRequest,
+    identity: Annotated[dict[str, str], Depends(_identity)],
+) -> dict[str, str]:
+    share = _SHARES.get(payload.token)
+    if share is None or share["owner"] != identity["alias"]:
+        raise HTTPException(status_code=403, detail="share owner required")
+    share["revoked"] = True
+    return {"token": payload.token, "state": "revoked"}
+
+
+@app.post("/api/secure-share-access")
+def secure_share_json(
+    payload: ShareTokenRequest,
+    identity: Annotated[dict[str, str], Depends(_identity)],
+) -> dict[str, object]:
+    share = _SHARES.get(payload.token)
+    if share is None or share["recipient"] != identity["alias"] or share["revoked"] is True:
+        raise HTTPException(status_code=403, detail="active share required")
+    item = _FILES[int(share["file_id"])]
+    return {"token": payload.token, "content": item["content"], "revoked": False}
+
+
 @app.post("/api/workflows/{workflow_id}/transition")
 def vulnerable_transition(
     workflow_id: int,
@@ -523,6 +580,72 @@ def safe_preview(value: str = "fixture") -> str:
     )
 
 
+@app.post("/api/cors/transfer")
+def vulnerable_cors_transfer(
+    response: Response,
+    identity: Annotated[dict[str, str], Depends(_identity)],
+    origin: Annotated[str | None, Header()] = None,
+) -> dict[str, object]:
+    """TEST FIXTURE: reflects any Origin while allowing credentialed state changes."""
+
+    response.headers["Access-Control-Allow-Origin"] = origin or "null"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Vary"] = "Origin"
+    alias = identity["alias"]
+    _CORS_TRANSFERS[alias] = _CORS_TRANSFERS.get(alias, 0) + 1
+    return {
+        "alias": alias,
+        "cors_transfer_count": _CORS_TRANSFERS[alias],
+        "fixture_issue": "credentialed origin reflection",
+    }
+
+
+@app.post("/api/secure-cors/transfer")
+def secure_cors_transfer(
+    response: Response,
+    identity: Annotated[dict[str, str], Depends(_identity)],
+    origin: Annotated[str | None, Header()] = None,
+) -> dict[str, object]:
+    if origin != _TRUSTED_ORIGIN:
+        raise HTTPException(status_code=403, detail="trusted origin required")
+    response.headers["Access-Control-Allow-Origin"] = _TRUSTED_ORIGIN
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    alias = identity["alias"]
+    _CORS_TRANSFERS[alias] = _CORS_TRANSFERS.get(alias, 0) + 1
+    return {"alias": alias, "cors_transfer_count": _CORS_TRANSFERS[alias]}
+
+
+@app.post("/api/csrf/transfer")
+def vulnerable_csrf_transfer(
+    identity: Annotated[dict[str, str], Depends(_identity)],
+    origin: Annotated[str | None, Header()] = None,
+    x_fixture_csrf: Annotated[str | None, Header()] = None,
+) -> dict[str, object]:
+    """TEST FIXTURE: accepts a cross-origin, tokenless credentialed mutation."""
+
+    del origin, x_fixture_csrf
+    alias = identity["alias"]
+    _CSRF_TRANSFERS[alias] = _CSRF_TRANSFERS.get(alias, 0) + 1
+    return {
+        "alias": alias,
+        "csrf_transfer_count": _CSRF_TRANSFERS[alias],
+        "fixture_issue": "csrf token and origin validation omitted",
+    }
+
+
+@app.post("/api/secure-csrf/transfer")
+def secure_csrf_transfer(
+    identity: Annotated[dict[str, str], Depends(_identity)],
+    origin: Annotated[str | None, Header()] = None,
+    x_fixture_csrf: Annotated[str | None, Header()] = None,
+) -> dict[str, object]:
+    if origin != _TRUSTED_ORIGIN or x_fixture_csrf != f"csrf-{identity['alias']}":
+        raise HTTPException(status_code=403, detail="trusted origin and CSRF token required")
+    alias = identity["alias"]
+    _CSRF_TRANSFERS[alias] = _CSRF_TRANSFERS.get(alias, 0) + 1
+    return {"alias": alias, "csrf_transfer_count": _CSRF_TRANSFERS[alias]}
+
+
 @app.options("/api/cors-control")
 def cors_control(response: Response) -> dict[str, str]:
     response.headers["Access-Control-Allow-Origin"] = "https://trusted.fixture.invalid"
@@ -548,4 +671,24 @@ async def vulnerable_object_websocket(websocket: WebSocket, object_id: int, acto
             "fixture_issue": "message-level object authorization omitted",
         }
     )
+    await websocket.close()
+
+
+@app.websocket("/ws/secure-objects/{object_id}")
+async def secure_object_websocket(websocket: WebSocket, object_id: int) -> None:
+    """Control endpoint: accept, then close a cross-owner socket with a visible code."""
+
+    identity = _IDENTITIES.get(websocket.headers.get("authorization", ""))
+    await websocket.accept()
+    if identity is None:
+        await websocket.close(code=4401)
+        return
+    item = _OBJECTS.get(object_id)
+    if item is None:
+        await websocket.close(code=4404)
+        return
+    if item["owner"] != identity["alias"]:
+        await websocket.close(code=4403)
+        return
+    await websocket.send_json({**item, "requested_by": identity["alias"], "fixture_issue": "secure control"})
     await websocket.close()

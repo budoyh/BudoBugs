@@ -8,7 +8,7 @@ import httpx
 import pytest
 
 from budobugs.models import Engagement
-from budobugs.proxy.base import ProxyUnavailable
+from budobugs.proxy.base import CredentialSubstitutedReplay, ProxyUnavailable
 from budobugs.proxy.burp import BurpMcpAdapter, _body, _headers, _http_version, _rows
 from budobugs.proxy.caido import CaidoClient, _decode_raw, _split_http
 from budobugs.proxy.mcp import McpHttpClient, _decode_mcp_response
@@ -49,8 +49,10 @@ async def test_caido_backend_health_history_get_replay_and_export(
         repository_root=repository_root,
     )
     calls: list[str] = []
+    bridge_requests: list[dict[str, object]] = []
 
     async def bridge(request: dict[str, object]) -> object:
+        bridge_requests.append(request)
         action = str(request["action"])
         calls.append(action)
         if action == "health":
@@ -61,6 +63,8 @@ async def test_caido_backend_health_history_get_replay_and_export(
             return _caido_row("caido-get", path="/api/objects/2")
         if action == "replay":
             return {"exchange": _caido_row("caido-replay")}
+        if action == "replay_with_request":
+            return {"exchange": _caido_row("caido-substituted")}
         raise AssertionError(action)
 
     monkeypatch.setattr(client, "_bridge", bridge)
@@ -80,9 +84,23 @@ async def test_caido_backend_health_history_get_replay_and_export(
     assert (await client.get("missing")).exchange_id == "caido-get"
     replayed = await client.replay(lab_engagement, history[0], account_alias="bob")
     assert replayed.account_alias == "bob"
+    request = CredentialSubstitutedReplay.build(
+        history[0].model_copy(
+            update={"request_headers": {"Cookie": "history-secret", "Authorization": "history-secret"}}
+        ),
+        account_alias="bob",
+        declared_account_headers={"Authorization": "Bearer declared-bob", "X-Account": "bob"},
+    )
+    substituted = await client.replay_with_request(lab_engagement, request)
+    assert substituted.account_alias == "bob"
+    bridge_request = next(item for item in bridge_requests if item["action"] == "replay_with_request")
+    request_payload = bridge_request["request"]
+    assert isinstance(request_payload, dict)
+    assert request_payload["headers"] == {"Authorization": "Bearer declared-bob", "X-Account": "bob"}
+    assert "history-secret" not in json.dumps(bridge_request)
     exported = await client.export(tmp_path / "caido.json")
-    assert len(json.loads(exported.read_text(encoding="utf-8"))) == 3
-    assert calls == ["health", "search", "get", "replay"]
+    assert len(json.loads(exported.read_text(encoding="utf-8"))) == 4
+    assert calls == ["health", "search", "get", "replay", "replay_with_request"]
 
     async def unavailable(_request: dict[str, object]) -> object:
         raise ProxyUnavailable("bridge absent")
@@ -126,6 +144,7 @@ async def test_burp_backend_capabilities_history_replay_repeater_and_export(
 ) -> None:
     adapter = BurpMcpAdapter("http://127.0.0.1:7778/mcp")
     called: list[str] = []
+    requests: list[tuple[str, dict[str, object]]] = []
 
     class Client:
         async def initialize(self) -> dict[str, object]:
@@ -142,6 +161,7 @@ async def test_burp_backend_capabilities_history_replay_repeater_and_export(
 
         async def call_tool(self, name: str, arguments: dict[str, object]) -> dict[str, object]:
             called.append(name)
+            requests.append((name, arguments))
             if name == "search_http_history":
                 return {"structuredContent": {"items": [_burp_row()]}}
             if name == "get_http_request_response":
@@ -170,12 +190,26 @@ async def test_burp_backend_capabilities_history_replay_repeater_and_export(
     assert (await adapter.get("missing")).exchange_id == "burp-get"
     replayed = await adapter.replay(lab_engagement, history[0], account_alias="alice")
     assert replayed.account_alias == "alice"
+    request = CredentialSubstitutedReplay.build(
+        history[0].model_copy(
+            update={"request_headers": {"Cookie": "history-secret", "Authorization": "history-secret"}}
+        ),
+        account_alias="alice",
+        declared_account_headers={"Authorization": "Bearer declared-alice", "X-Account": "alice"},
+    )
+    substituted = await adapter.replay_with_request(lab_engagement, request)
+    assert substituted.account_alias == "alice"
+    _, arguments = requests[-1]
+    assert arguments["headers"] == {"Authorization": "Bearer declared-alice", "X-Account": "alice"}
+    assert "history-secret" not in json.dumps(arguments)
+    assert "id" not in arguments
     assert (await adapter.create_repeater(lab_engagement, history[0]))["structuredContent"]
     exported = await adapter.export(tmp_path / "burp.json")
     assert exported.is_file()
     assert called == [
         "search_http_history",
         "get_http_request_response",
+        "send_http_request",
         "send_http_request",
         "send_to_repeater",
     ]
@@ -254,6 +288,19 @@ async def test_zap_backend_health_history_get_replay_export_and_raw_guard(
     assert replayed.account_alias == "bob"
     assert sent
     assert sent[0].startswith("GET /api/objects/1 HTTP/1.1")
+    request = CredentialSubstitutedReplay.build(
+        history[0].model_copy(
+            update={"request_headers": {"Cookie": "history-secret", "Authorization": "history-secret"}}
+        ),
+        account_alias="bob",
+        declared_account_headers={"Authorization": "Bearer declared-bob", "X-Account": "bob"},
+    )
+    substituted = await client.replay_with_request(lab_engagement, request)
+    assert substituted.account_alias == "bob"
+    assert "Authorization: Bearer declared-bob" in sent[-1]
+    assert "X-Account: bob" in sent[-1]
+    assert "history-secret" not in sent[-1]
+    assert "Cookie:" not in sent[-1]
     assert (await client.export(tmp_path / "zap.json")).is_file()
     with pytest.raises(ValueError, match="invalid or oversized"):
         await client.send_request("bad\x00request")

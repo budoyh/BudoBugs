@@ -28,7 +28,7 @@ class SkillRuntime:
         AgentRole.BUSINESS_LOGIC_SPECIALIST: ("authz-business-logic", "hypothesis-and-validation"),
         AgentRole.API_AUTH_SPECIALIST: ("api-auth-session", "hypothesis-and-validation"),
         AgentRole.WEB_CLIENT_SPECIALIST: ("client-file-workflows", "hypothesis-and-validation"),
-        AgentRole.EVIDENCE_VALIDATOR: ("evidence-critic", "hypothesis-and-validation"),
+        AgentRole.EVIDENCE_VALIDATOR: ("evidence-critic", "hypothesis-and-validation", "lab-evaluation"),
         AgentRole.ADVERSARIAL_CRITIC: ("evidence-critic",),
         AgentRole.RECON_RESEARCHER: ("passive-recon", "tool-operator"),
         AgentRole.SOURCE_REVIEWER: ("source-secret-supply-chain", "tool-operator"),
@@ -36,7 +36,7 @@ class SkillRuntime:
     }
     SKILL_ACTIONS: dict[str, set[ActionKind]] = {
         "budobugs-controller": {ActionKind.PROXY_SEARCH, ActionKind.EVIDENCE_REVIEW, ActionKind.FINISH},
-        "engagement-intake": {ActionKind.FINISH},
+        "engagement-intake": {ActionKind.EVIDENCE_REVIEW},
         "web-attack-surface": {
             ActionKind.BROWSER_EXPLORE,
             ActionKind.BROWSER_NAVIGATE,
@@ -50,12 +50,14 @@ class SkillRuntime:
             ActionKind.HTTP_REQUEST,
             ActionKind.PROXY_REPLAY,
             ActionKind.VALIDATOR_RUN,
+            ActionKind.EVIDENCE_REVIEW,
         },
         "traffic-object-model": {ActionKind.PROXY_SEARCH, ActionKind.TRAFFIC_MODEL},
         "authz-business-logic": {
             ActionKind.HTTP_REQUEST,
             ActionKind.PROXY_REPLAY,
             ActionKind.VALIDATOR_RUN,
+            ActionKind.EVIDENCE_REVIEW,
         },
         "hypothesis-and-validation": {
             ActionKind.HTTP_REQUEST,
@@ -67,11 +69,13 @@ class SkillRuntime:
             ActionKind.HTTP_REQUEST,
             ActionKind.PROXY_REPLAY,
             ActionKind.VALIDATOR_RUN,
+            ActionKind.EVIDENCE_REVIEW,
         },
         "evidence-critic": {ActionKind.EVIDENCE_REVIEW, ActionKind.VALIDATOR_RUN, ActionKind.FINISH},
         "passive-recon": {ActionKind.PROXY_SEARCH, ActionKind.TOOL_TASK},
         "source-secret-supply-chain": {ActionKind.TOOL_TASK, ActionKind.EVIDENCE_REVIEW},
         "tool-operator": {ActionKind.TOOL_TASK},
+        "lab-evaluation": {ActionKind.VALIDATOR_RUN},
         "butian-report": {ActionKind.EVIDENCE_REVIEW, ActionKind.FINISH},
     }
 

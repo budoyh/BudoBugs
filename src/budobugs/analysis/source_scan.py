@@ -43,12 +43,14 @@ class SourceScanCoordinator:
                 )
                 try:
                     receipt = await self.runner.run(request, engagement)
-                except ToolExecutionError as exc:
+                except (ToolExecutionError, PermissionError) as exc:
                     results.append(
                         {
                             "tool": tool_name,
                             "target_label": root.label,
-                            "status": "NEEDS_RUNTIME",
+                            "status": (
+                                "BLOCKED_BY_OFFLINE_POLICY" if isinstance(exc, PermissionError) else "NEEDS_RUNTIME"
+                            ),
                             "observation": str(exc),
                             "finding_count": None,
                         }
@@ -79,8 +81,9 @@ class SourceScanCoordinator:
             "run_id": run_id,
             "engagement_id": engagement.engagement_id,
             "results": results,
-            "executed": sum(item["status"] != "NEEDS_RUNTIME" for item in results),
+            "executed": sum(item["status"] not in {"NEEDS_RUNTIME", "BLOCKED_BY_OFFLINE_POLICY"} for item in results),
             "needs_runtime": sum(item["status"] == "NEEDS_RUNTIME" for item in results),
+            "blocked_by_offline_policy": sum(item["status"] == "BLOCKED_BY_OFFLINE_POLICY" for item in results),
         }
         atomic_write_json(self.artifact_root / "source-scan-summary.json", summary)
         return summary

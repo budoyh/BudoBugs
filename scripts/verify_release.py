@@ -7,6 +7,7 @@ import ast
 import hashlib
 import json
 import re
+import shlex
 import subprocess
 import sys
 import tomllib
@@ -14,6 +15,8 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+
+from budobugs.release_snapshot import source_snapshot
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_REMOTE = "https://github.com/budoyh/BudoBugs.git"
@@ -82,6 +85,85 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def validate_source_snapshot(provenance: dict[str, Any]) -> None:
+    """Reject scanner evidence whose recorded source tree is no longer present."""
+
+    expected = source_snapshot(ROOT)
+    if provenance.get("source_snapshot") != expected:
+        fail("release provenance source snapshot does not match the current repository inputs")
+
+
+def fixture_build_input_snapshot(root: Path | None = None) -> dict[str, object]:
+    """Return the complete local COPY input identity for the fixture image."""
+
+    root = root or ROOT
+    dockerfile = root / "docker" / "labs" / "fixture" / "Dockerfile"
+    if not dockerfile.is_file():
+        fail("fixture Dockerfile is missing")
+    inputs = {dockerfile.relative_to(root)}
+    for line in dockerfile.read_text(encoding="utf-8").splitlines():
+        instruction = line.strip()
+        if not instruction or instruction.startswith("#") or not instruction.upper().startswith("COPY "):
+            continue
+        try:
+            tokens = shlex.split(instruction)
+        except ValueError:
+            fail(f"fixture Dockerfile COPY cannot be parsed: {instruction}")
+        arguments = tokens[1:]
+        from_stage = False
+        while arguments and arguments[0].startswith("--"):
+            flag = arguments.pop(0)
+            if flag.startswith("--from="):
+                from_stage = True
+            elif not flag.startswith(("--chown=", "--chmod=")):
+                fail(f"fixture Dockerfile COPY has unsupported flag: {flag}")
+        if from_stage:
+            continue
+        if len(arguments) < 2:
+            fail(f"fixture Dockerfile COPY has no local source: {instruction}")
+        for source in arguments[:-1]:
+            path = root / source
+            if (
+                Path(source).is_absolute()
+                or not path.is_file()
+                or path.is_symlink()
+                or root not in path.resolve().parents
+            ):
+                fail(f"fixture Dockerfile COPY source is not a regular repository file: {source}")
+            inputs.add(path.relative_to(root))
+    return {
+        "schema_version": 1,
+        "inputs": [
+            {"path": path.as_posix(), "sha256": sha256(root / path)}
+            for path in sorted(inputs, key=lambda item: item.as_posix())
+        ],
+    }
+
+
+def validate_fixture_build_inputs(review: dict[str, Any]) -> None:
+    if review.get("fixture_build_inputs") != fixture_build_input_snapshot():
+        fail("fixture VEX review build inputs do not match the current Docker build context")
+
+
+def validate_vex_products(products: list[Any], vulnerability: str) -> set[str]:
+    """Require both local-tag and digest products to select one identical package."""
+
+    statement_purls: set[str] = set()
+    for product in products:
+        if not isinstance(product, dict):
+            fail(f"fixture OpenVEX contains an invalid product: {vulnerability}")
+        subcomponents = product.get("subcomponents")
+        if not isinstance(subcomponents, list) or len(subcomponents) != 1:
+            fail(f"fixture OpenVEX statement must name one exact subcomponent: {vulnerability}")
+        purl = str(subcomponents[0].get("@id", "")) if isinstance(subcomponents[0], dict) else ""
+        if not purl.startswith("pkg:"):
+            fail(f"fixture OpenVEX subcomponent identity is incomplete: {vulnerability}")
+        statement_purls.add(purl)
+    if len(statement_purls) != 1:
+        fail(f"fixture OpenVEX products disagree on the exact subcomponent: {vulnerability}")
+    return statement_purls
 
 
 def validate_required_files() -> None:
@@ -485,14 +567,9 @@ def validate_vex_evidence() -> int:
     if severe_grype_matches(raw, "ignoredMatches"):
         fail("raw Grype report suppresses severe matches")
 
-    if not isinstance(review, dict) or review.get("schema_version") != 1:
+    if not isinstance(review, dict) or review.get("schema_version") != 2:
         fail("fixture VEX review has an unsupported schema")
-    fixture_source = ROOT / str(review.get("fixture_source", ""))
-    expected_source = ROOT / "src" / "budobugs" / "labs" / "fixture_app.py"
-    if fixture_source.resolve() != expected_source.resolve() or not fixture_source.is_file():
-        fail("fixture VEX review is not bound to fixture_app.py")
-    if review.get("fixture_source_sha256") != sha256(fixture_source):
-        fail("fixture source changed after the VEX reachability review")
+    validate_fixture_build_inputs(review)
     decisions = review.get("decisions")
     if not isinstance(decisions, list):
         fail("fixture VEX review has no decisions list")
@@ -546,11 +623,8 @@ def validate_vex_evidence() -> int:
         has_digest_product = any(item.startswith("pkg:oci/fixture@sha256%3A") for item in identifiers)
         if "budobugs/fixture:local" not in identifiers or not has_digest_product:
             fail(f"fixture OpenVEX product identity is incomplete: {vulnerability}")
-        for product in products[:1]:
-            subcomponents = product.get("subcomponents")
-            if not isinstance(subcomponents, list) or len(subcomponents) != 1:
-                fail(f"fixture OpenVEX statement must name one exact subcomponent: {vulnerability}")
-            vex_purl_keys.add((str(subcomponents[0].get("@id", "")), vulnerability))
+        statement_purls = validate_vex_products(products, vulnerability)
+        vex_purl_keys.update((purl, vulnerability) for purl in statement_purls)
 
     raw_purl_keys = {
         (str(match.get("artifact", {}).get("purl", "")), str(match.get("vulnerability", {}).get("id", "")))
@@ -642,10 +716,11 @@ def validate_release_artifacts(version: str) -> dict[str, int]:
         fail("release scan summary does not match the bounded HexStrike validation receipt")
 
     provenance = load_json(RELEASE_ARTIFACTS["provenance"])
-    if not isinstance(provenance, dict) or provenance.get("schema_version") != 1:
+    if not isinstance(provenance, dict) or provenance.get("schema_version") != 2:
         fail("release provenance has an unsupported schema")
     if provenance.get("project") != "BudoBugs" or provenance.get("version") != version:
         fail("release provenance identifies a different project version")
+    validate_source_snapshot(provenance)
     materials = provenance.get("materials")
     if not isinstance(materials, dict):
         fail("release provenance has no materials mapping")

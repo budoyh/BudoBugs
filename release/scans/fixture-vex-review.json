@@ -229,8 +229,27 @@
     "name": "alpine",
     "version": "3.23.5"
   },
-  "fixture_source": "src/budobugs/labs/fixture_app.py",
-  "fixture_source_sha256": "bc66b17f1f793129158179f5e00c23a60147037f84ee57522c09c8942f6301b6",
-  "image_manifest": "sha256:ca7d11e68f90dfd7b02cea76e66be77d3d0b55c71edd83bf56c49945d86bf70c",
-  "schema_version": 1
+  "fixture_build_inputs": {
+    "inputs": [
+      {
+        "path": "LICENSE",
+        "sha256": "fd1c80be09e07da765cfed2e053b0f2d78579d28b5ced0a06019ab3ea2c2ce0c"
+      },
+      {
+        "path": "docker/labs/fixture/Dockerfile",
+        "sha256": "3904daf03c170cf9bad2bef59610c57c7772c8729808d65f1faad9a178df6f42"
+      },
+      {
+        "path": "docker/labs/fixture/requirements.lock",
+        "sha256": "c1c801ba947231208ee06ab5b283793a4395c3638cab7be0d0e3ffa00395c0c9"
+      },
+      {
+        "path": "src/budobugs/labs/fixture_app.py",
+        "sha256": "f467b4133f6d3a356e40a3cfde2439aedcb9f9cdd432985c43e89bc51f2d96a0"
+      }
+    ],
+    "schema_version": 1
+  },
+  "image_manifest": "sha256:32b043efaab57dd4a0a5d62873ee6498623525fa0cc85a88f00ae55743838761",
+  "schema_version": 2
 }

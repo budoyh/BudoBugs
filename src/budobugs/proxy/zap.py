@@ -13,6 +13,7 @@ from budobugs.core.io import atomic_write_json
 from budobugs.core.policy import require_allowed, target_allowed
 from budobugs.models import Engagement, HttpExchange
 from budobugs.proxy.base import (
+    CredentialSubstitutedReplay,
     ProxyBackend,
     ProxyCapabilities,
     ProxyUnavailable,
@@ -23,7 +24,14 @@ from budobugs.traffic.normalization import normalize_exchange
 
 class ZapClient(ProxyBackend):
     name = "zap"
-    capabilities = ProxyCapabilities(history=True, replay=True, http2=False, active_automation=True, export=True)
+    capabilities = ProxyCapabilities(
+        history=True,
+        replay=True,
+        http2=False,
+        active_automation=True,
+        export=True,
+        credential_substitution_replay=True,
+    )
 
     def __init__(
         self,
@@ -132,6 +140,40 @@ class ZapClient(ProxyBackend):
         if not candidates:
             raise ProxyUnavailable("ZAP replay completed but no scoped history record was returned")
         latest = candidates[-1].model_copy(update={"account_alias": account_alias or exchange.account_alias})
+        self._history[latest.exchange_id] = latest
+        return latest
+
+    async def replay_with_request(
+        self,
+        engagement: Engagement,
+        request: CredentialSubstitutedReplay,
+    ) -> HttpExchange:
+        """Send an explicit request through ZAP's local control API."""
+
+        exchange = request.exchange
+        require_allowed(target_allowed(engagement, exchange.url))
+        parsed = urlsplit(exchange.url)
+        path = parsed.path or "/"
+        if parsed.query:
+            path = f"{path}?{parsed.query}"
+        # Host/framing are generated here from the scoped destination. They
+        # cannot be inherited from captured traffic or caller headers.
+        header_rows = [f"Host: {parsed.netloc}", *(f"{name}: {value}" for name, value in request.headers.items())]
+        raw = f"{exchange.method} {path} HTTP/1.1\r\n" + "\r\n".join(header_rows) + "\r\n\r\n"
+        if request.body:
+            raw += request.body
+        await self.send_request(raw, follow_redirects=False)
+        candidates = await self.search(
+            engagement,
+            host=parsed.hostname,
+            path=parsed.path,
+            method=exchange.method,
+        )
+        if not candidates:
+            raise ProxyUnavailable(
+                "ZAP credential-substituted replay completed but no scoped history record was returned"
+            )
+        latest = candidates[-1].model_copy(update={"account_alias": request.account_alias})
         self._history[latest.exchange_id] = latest
         return latest
 

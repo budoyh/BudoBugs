@@ -8,7 +8,7 @@ from tests.conftest import make_exchange, make_finding
 from budobugs.core.identifiers import new_id
 from budobugs.evidence.pack import EvidencePackBuilder, EvidencePackError, pack_finding
 from budobugs.models import CandidateStatus, ControlExperiment, CriticVerdict, Engagement, HttpExchange
-from budobugs.reporting.generator import ReportGenerationError, ReportGenerator
+from budobugs.reporting.generator import ReportGenerationError, ReportGenerator, _remediation
 from budobugs.validation.critic import AdversarialCritic
 from budobugs.validation.gates import EvidenceGate
 
@@ -62,7 +62,30 @@ def test_evidence_gate_critic_and_report_are_artifact_consistent(
     assert Path(report.html_path).is_file()
     assert lab_engagement.vendor in Path(report.markdown_path).read_text(encoding="utf-8")
     assert lab_engagement.platform in Path(report.html_path).read_text(encoding="utf-8")
+    markdown = Path(report.markdown_path).read_text(encoding="utf-8")
+    assert "GET /api/objects/1 HTTP/1.1" in markdown
+    assert "HTTP/1.1 200" in markdown
+    assert "跨账号、跨角色、跨租户" in markdown
     assert pack_finding(pack, tmp_path / "export.zip").is_file()
+
+
+def test_report_remediation_is_specific_to_root_cause(lab_engagement: Engagement) -> None:
+    finding = make_finding(engagement_id=lab_engagement.engagement_id)
+    xss = finding.model_copy(
+        update={
+            "vulnerability_class": "client-side-xss",
+            "enforcement_point": "preview renderer",
+        }
+    )
+    csrf = finding.model_copy(
+        update={
+            "vulnerability_class": "csrf",
+            "enforcement_point": "order update handler",
+        }
+    )
+    assert any("innerHTML" in item for item in _remediation(xss))
+    assert any("CSRF token" in item for item in _remediation(csrf))
+    assert all("对象所有权" not in item for item in _remediation(xss))
 
 
 def test_report_refuses_self_reported_ready_without_critic(

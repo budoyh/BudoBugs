@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shlex
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
@@ -14,7 +15,6 @@ ROOT = Path(__file__).resolve().parents[1]
 RAW_REPORT = ROOT / "release" / "scans" / "grype-fixture-raw.json"
 OUTPUT = ROOT / "release" / "scans" / "fixture.openvex.json"
 REVIEW_OUTPUT = ROOT / "release" / "scans" / "fixture-vex-review.json"
-FIXTURE_SOURCE = ROOT / "src" / "budobugs" / "labs" / "fixture_app.py"
 SEVERE = {"HIGH", "CRITICAL"}
 
 # Every entry is deliberately tied to one exact package/version/CVE tuple. A new
@@ -114,11 +114,72 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
     os.replace(temporary, path)
 
 
+def fixture_build_input_snapshot(root: Path | None = None) -> dict[str, object]:
+    """Bind VEX reachability claims to every local file copied into the fixture image.
+
+    Unsupported Dockerfile COPY syntax fails closed so a new local build input
+    cannot silently fall outside the reachability review.
+    """
+
+    root = root or ROOT
+    dockerfile = root / "docker" / "labs" / "fixture" / "Dockerfile"
+    if not dockerfile.is_file():
+        raise ValueError("fixture Dockerfile is missing")
+    inputs = {dockerfile.relative_to(root)}
+    for line in dockerfile.read_text(encoding="utf-8").splitlines():
+        instruction = line.strip()
+        if not instruction or instruction.startswith("#") or not instruction.upper().startswith("COPY "):
+            continue
+        try:
+            tokens = shlex.split(instruction)
+        except ValueError as exc:
+            raise ValueError(f"fixture Dockerfile COPY cannot be parsed: {instruction}") from exc
+        arguments = tokens[1:]
+        from_stage = False
+        while arguments and arguments[0].startswith("--"):
+            flag = arguments.pop(0)
+            if flag.startswith("--from="):
+                from_stage = True
+            elif not flag.startswith(("--chown=", "--chmod=")):
+                raise ValueError(f"fixture Dockerfile COPY has unsupported flag: {flag}")
+        if from_stage:
+            continue
+        if len(arguments) < 2:
+            raise ValueError(f"fixture Dockerfile COPY has no local source: {instruction}")
+        for source in arguments[:-1]:
+            path = root / source
+            if (
+                Path(source).is_absolute()
+                or not path.is_file()
+                or path.is_symlink()
+                or root not in path.resolve().parents
+            ):
+                raise ValueError(f"fixture Dockerfile COPY source is not a regular repository file: {source}")
+            inputs.add(path.relative_to(root))
+    return {
+        "schema_version": 1,
+        "inputs": [
+            {"path": path.as_posix(), "sha256": hashlib.sha256((root / path).read_bytes()).hexdigest()}
+            for path in sorted(inputs, key=lambda item: item.as_posix())
+        ],
+    }
+
+
 def main() -> int:
-    fixture_text = FIXTURE_SOURCE.read_text(encoding="utf-8")
-    prohibited = sorted(token for token in PROHIBITED_FIXTURE_TOKENS if token in fixture_text)
+    try:
+        build_inputs = fixture_build_input_snapshot()
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    copied_python_sources = [
+        ROOT / str(item["path"]) for item in build_inputs["inputs"] if str(item["path"]).endswith(".py")
+    ]
+    prohibited = sorted(
+        token
+        for token in PROHIBITED_FIXTURE_TOKENS
+        if any(token in source.read_text(encoding="utf-8") for source in copied_python_sources)
+    )
     if prohibited:
-        raise SystemExit(f"fixture source now reaches a VEX-prohibited API: {prohibited}")
+        raise SystemExit(f"fixture build context now reaches a VEX-prohibited API: {prohibited}")
 
     payload = json.loads(RAW_REPORT.read_text(encoding="utf-8"))
     manifest = payload.get("source", {}).get("target", {}).get("manifestDigest")
@@ -201,11 +262,10 @@ def main() -> int:
         "statements": statements,
     }
     review = {
-        "schema_version": 1,
+        "schema_version": 2,
         "image_manifest": manifest,
         "distro": distro,
-        "fixture_source": FIXTURE_SOURCE.relative_to(ROOT).as_posix(),
-        "fixture_source_sha256": hashlib.sha256(fixture_text.encode()).hexdigest(),
+        "fixture_build_inputs": build_inputs,
         "control": {
             "prohibited_tokens_absent": sorted(PROHIBITED_FIXTURE_TOKENS),
             "review_scope": "All High/Critical matches in the unfiltered Grype report",

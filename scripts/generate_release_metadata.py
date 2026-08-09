@@ -14,6 +14,8 @@ from typing import Any
 
 import yaml
 
+from budobugs.release_snapshot import source_snapshot
+
 ROOT = Path(__file__).resolve().parents[1]
 SCAN_DIR = ROOT / "release" / "scans"
 RAW_ARTIFACTS = {
@@ -261,7 +263,7 @@ def main() -> int:
         ROOT / "tools" / "lock" / "tool-lock.yaml",
     ]
     provenance = {
-        "schema_version": 1,
+        "schema_version": 2,
         "project": "BudoBugs",
         "version": version,
         "generated_at": generated_at,
@@ -275,6 +277,7 @@ def main() -> int:
             path.relative_to(ROOT).as_posix(): sha256(path)
             for path in sorted(material_paths, key=lambda item: item.as_posix())
         },
+        "source_snapshot": source_snapshot(ROOT),
         "commands": [
             "syft scan dir:. --exclude ./.git/** --exclude ./.budobugs/** --exclude ./.venv/** "
             "--exclude ./node_modules/** --exclude ./dist/** --exclude ./engagements/** "
@@ -283,15 +286,17 @@ def main() -> int:
             "--output cyclonedx-json=release/sbom/source.cdx.json",
             "gitleaks detect --source . --no-git --redact --config .gitleaks.toml "
             "--report-format json --report-path release/scans/gitleaks.json",
-            "semgrep scan --config config/semgrep.yml --json --output release/scans/semgrep.json --metrics off .",
+            "semgrep scan --config config/semgrep.yml --json --output release/scans/semgrep.json "
+            "--metrics off src tests scripts .agents integrations",
             "osv-scanner scan source --lockfile uv.lock --lockfile pnpm-lock.yaml "
             "--format json --output-file release/scans/osv.json",
             "trivy fs --format json --scanners vuln,secret,misconfig --severity HIGH,CRITICAL "
             "--skip-dirs .git --skip-dirs .budobugs --skip-dirs .venv --skip-dirs node_modules "
             "--skip-dirs dist --skip-dirs engagements --skip-dirs findings --skip-dirs runs "
-            "--skip-dirs release .",
+            "--skip-dirs release --output release/scans/trivy-fs.json .",
             "trivy image --input .budobugs/fixture-release.tar --format json "
-            "--scanners vuln,secret,misconfig --severity HIGH,CRITICAL",
+            "--output release/scans/trivy-fixture.json --scanners vuln,secret,misconfig "
+            "--severity HIGH,CRITICAL",
             "grype docker-archive:.budobugs/fixture-release.tar --output json "
             "--file release/scans/grype-fixture-raw.json",
             "python scripts/generate_fixture_vex.py",

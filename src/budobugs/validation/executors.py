@@ -9,6 +9,8 @@ from urllib.parse import quote, urlsplit
 
 from budobugs.browser.session import BrowserSessionManager
 from budobugs.core.identifiers import new_id
+from budobugs.core.io import atomic_write_json
+from budobugs.core.policy import require_allowed, websocket_target_allowed
 from budobugs.models import (
     CandidateDecision,
     CandidateStatus,
@@ -38,21 +40,36 @@ class ValidatorRegistry:
     FIXTURE_VALIDATORS = {
         "fixture-horizontal-rest",
         "fixture-horizontal-graphql",
+        "fixture-horizontal-websocket",
         "fixture-vertical-role",
         "fixture-cross-tenant",
         "fixture-file-share",
         "fixture-business-workflow",
         "fixture-session-revocation",
         "fixture-client-xss",
+        "fixture-cors-credentialed-origin",
+        "fixture-csrf-token-bypass",
         "fixture-false-public",
         "fixture-false-secure-object",
         "fixture-false-safe-client",
         "fixture-false-control-suite",
     }
 
-    def __init__(self, artifact_root: Path) -> None:
+    def __init__(self, artifact_root: Path, *, private_root: Path | None = None) -> None:
         self.artifact_root = artifact_root.resolve()
         self.artifact_root.mkdir(parents=True, exist_ok=True)
+        # Fixture/browser validators retain native Playwright state separately
+        # from their reportable audit artifacts when the orchestrator supplies
+        # a private runtime root.  The public-root fallback preserves direct
+        # standalone test usage that has no credential-bearing session.
+        self.private_root = (private_root or self.artifact_root).resolve()
+
+    def _browser(self, artifact_root: Path, engagement: Engagement) -> BrowserSessionManager:
+        return BrowserSessionManager(
+            artifact_root,
+            engagement,
+            private_root=self.private_root / artifact_root.name,
+        )
 
     async def run(self, validator_id: str, engagement: Engagement) -> list[ValidatorResult]:
         if validator_id not in self.FIXTURE_VALIDATORS:
@@ -71,12 +88,15 @@ class ValidatorRegistry:
         dispatch = {
             "fixture-horizontal-rest": self._horizontal_rest,
             "fixture-horizontal-graphql": self._horizontal_graphql,
+            "fixture-horizontal-websocket": self._horizontal_websocket,
             "fixture-vertical-role": self._vertical_role,
             "fixture-cross-tenant": self._cross_tenant,
             "fixture-file-share": self._file_share,
             "fixture-business-workflow": self._business_workflow,
             "fixture-session-revocation": self._session_revocation,
             "fixture-client-xss": self._client_xss,
+            "fixture-cors-credentialed-origin": self._cors_credentialed_origin,
+            "fixture-csrf-token-bypass": self._csrf_token_bypass,
             "fixture-false-public": self._false_public,
             "fixture-false-secure-object": self._false_secure_object,
             "fixture-false-safe-client": self._false_safe_client,
@@ -200,7 +220,13 @@ class ValidatorRegistry:
             severity=severity,
             confidence=confidence,
             duplicate_risk=duplicate,
-            status=CandidateStatus.VALIDATING if decision is CandidateDecision.CONFIRMED else CandidateStatus.KILL,
+            status=(
+                CandidateStatus.VALIDATING
+                if decision is CandidateDecision.CONFIRMED
+                else CandidateStatus.HOLD
+                if decision is CandidateDecision.HOLD
+                else CandidateStatus.KILL
+            ),
         )
 
     @staticmethod
@@ -228,6 +254,7 @@ class ValidatorRegistry:
             decision=decision,
             vulnerability_class=finding.vulnerability_class,
             title=finding.title,
+            affected_feature=finding.affected_feature,
             root_cause_key=root_cause,
             repair_boundary=repair_boundary,
             finding_id=finding.finding_id,
@@ -416,6 +443,216 @@ class ValidatorRegistry:
             closed=repeated,
             confidence=0.99,
         )
+
+    async def _horizontal_websocket(
+        self,
+        engagement: Engagement,
+        _backend: DirectProxyBackend,
+    ) -> ValidatorResult:
+        """Validate message-level object authorization through an actual browser WebSocket."""
+
+        base = self._base(engagement)
+        parsed = urlsplit(base)
+        websocket_base = f"{'wss' if parsed.scheme == 'https' else 'ws'}://{parsed.netloc}"
+        browser_root = self.artifact_root / "websocket-authorization"
+        browser = self._browser(browser_root, engagement)
+        page = await browser.open("websocket-client", base)
+        artifacts: list[str] = []
+
+        async def observe(actor: str, object_id: int) -> HttpExchange:
+            websocket_url = f"{websocket_base}/ws/objects/{object_id}?actor={quote(actor, safe='')}"
+            require_allowed(websocket_target_allowed(engagement, websocket_url))
+            raw = await page.evaluate(
+                """url => new Promise(resolve => {
+                    let settled = false;
+                    const socket = new WebSocket(url);
+                    const finish = value => {
+                        if (settled) return;
+                        settled = true;
+                        clearTimeout(timer);
+                        try { socket.close(); } catch (_) {}
+                        resolve(value);
+                    };
+                    const timer = setTimeout(
+                        () => finish({event: 'timeout', close_code: 0, data: ''}),
+                        5000,
+                    );
+                    socket.addEventListener('message', event => finish({
+                        event: 'message', close_code: 1000, data: String(event.data),
+                    }));
+                    socket.addEventListener('close', event => finish({
+                        event: 'close', close_code: event.code, data: '',
+                    }));
+                    socket.addEventListener('error', () => {});
+                })""",
+                websocket_url,
+            )
+            result = raw if isinstance(raw, dict) else {}
+            event = str(result.get("event", "invalid"))
+            close_code = int(result.get("close_code", 0))
+            response_status = 101 if event == "message" else 401 if close_code == 4401 else 404
+            return HttpExchange(
+                exchange_id=new_id("http-ws"),
+                engagement_id=engagement.engagement_id,
+                method="GET",
+                url=f"{base}/ws/objects/{object_id}?actor={quote(actor, safe='')}",
+                request_headers={"Upgrade": "websocket"},
+                response_status=response_status,
+                response_headers={
+                    "X-Budo-Protocol": "websocket",
+                    "X-WebSocket-Event": event,
+                    "X-WebSocket-Close-Code": str(close_code),
+                },
+                response_body=str(result.get("data", "")),
+                account_alias=actor if actor in {"alice", "bob"} else "anonymous",
+                source="playwright",
+            )
+
+        try:
+            own = await observe("bob", 2)
+            cross_first = await observe("bob", 1)
+            cross_second = await observe("bob", 1)
+            denied = await observe("invalid", 1)
+            screenshot = await browser.screenshot("websocket-client", page, "websocket-controls")
+            artifacts.append(str(screenshot))
+        finally:
+            await page.close()
+            await browser.stop()
+        observations_path = browser_root / "observations.json"
+        exchanges = [own, cross_first, cross_second, denied]
+        atomic_write_json(
+            observations_path,
+            {"exchanges": [item.model_dump(mode="json") for item in exchanges]},
+        )
+        artifacts.extend([str(observations_path), *browser.artifact_paths()])
+        decision, repeated, evidence_closed = self._websocket_decision(own, cross_first, cross_second, denied)
+        normal_passed = own.response_status == 101
+        negative_passed = denied.response_status == 401
+        if decision is CandidateDecision.CONFIRMED:
+            title = "WebSocket 对象消息复用缺少授权的共享解析器"
+            observed = "bob 更换对象 ID 后两次收到 alice 对象的相同消息。"
+            expected = "服务端应在发送消息前拒绝非所有者订阅。"
+            after = "bob 能订阅 alice 的对象 1。"
+            delta = "通过持久通道跨账号读取一个自有私有对象消息"
+            benign = "对象可能公开；握手负对照和 REST/GraphQL 同一 root_cause 标记排除了该解释。"
+            impact = "低权限会话可通过 WebSocket 绕过消息级对象授权。"
+            severity = Severity.MEDIUM
+            confidence = 0.99
+        elif decision is CandidateDecision.KILL:
+            title = "伪候选：WebSocket 对象频道正确拒绝跨账号订阅"
+            observed = "bob 的跨对象订阅连续两次被拒绝，未收到对象消息。"
+            expected = "服务端在发送消息前拒绝非所有者订阅。"
+            after = "能力未增加。"
+            delta = "none"
+            benign = "CONTROL_RESULT: OBJECT_AUTHORIZATION_ENFORCED。"
+            impact = "无安全影响。"
+            severity = Severity.INFO
+            confidence = 0.99
+        else:
+            title = "HOLD: WebSocket 对象订阅控制未闭合"
+            observed = "自有订阅、无效身份负对照或跨对象重复证据未同时闭合。"
+            expected = "在所有控制完成前不得把 WebSocket 行为报告为授权绕过。"
+            after = "无已证实能力增量。"
+            delta = "none; candidate remains HOLD"
+            benign = "网络或浏览器运行时异常可能导致缺失控制。"
+            impact = "未确认；无可报告能力增量。"
+            severity = Severity.INFO
+            confidence = 0.3
+        controls = [
+            self._control(
+                "normal",
+                "Bob subscribes to Bob's own fixture object channel.",
+                [own],
+                f"status={own.response_status}",
+                normal_passed,
+                artifacts,
+            ),
+            self._control(
+                "negative",
+                "An invalid fixture identity is rejected before receiving a message.",
+                [denied],
+                f"status={denied.response_status}; close={denied.response_headers.get('X-WebSocket-Close-Code')}",
+                negative_passed,
+            ),
+            self._control(
+                "refutation",
+                "Repeat the cross-object subscription exactly before classifying the candidate.",
+                [cross_first, cross_second],
+                f"statuses={cross_first.response_status},{cross_second.response_status}; "
+                f"same-body={cross_first.response_body == cross_second.response_body}",
+                repeated,
+            ),
+        ]
+        finding = self._finding(
+            engagement,
+            title=title,
+            vulnerability_class="websocket-authorization",
+            feature="WebSocket object subscription",
+            endpoint="WS /ws/objects/{id}?actor=...",
+            invariant="握手身份和每条对象消息都必须执行对象所有权授权。",
+            protected_asset="alice 的一个本地私有测试对象消息",
+            trust_boundary="bob WebSocket 会话到 alice 对象频道",
+            enforcement="shared object resolver owner/tenant policy",
+            observed=observed,
+            expected=expected,
+            before="bob 只能订阅自己的对象 2。",
+            after=after,
+            delta=delta,
+            normal=f"bob 自有对象升级并返回消息，映射状态 {own.response_status}。",
+            negative=f"无效身份在消息前被拒绝，映射状态 {denied.response_status}。",
+            benign=benign,
+            refutations=["有效自有订阅", "无效身份握手", "消息精确重复", "跨协议根因比较"],
+            steps=["bob 订阅对象 2。", "只把对象 ID 改为 1。", "重复订阅。", "使用无效身份负对照。"],
+            exposure="仅仓库夹具中的一个 alice 对象消息。",
+            mutation="WebSocket GET upgrade；只改变一个对象标识符。",
+            cleanup="关闭页面、WebSocket 和持久浏览器上下文。",
+            impact=impact,
+            severity=severity,
+            confidence=confidence,
+            duplicate="与 REST/GraphQL 入口由同一 shared object resolver 修复，必须合并。",
+            decision=decision,
+        )
+        return self._result(
+            "fixture-horizontal-websocket",
+            finding,
+            controls,
+            exchanges,
+            decision=decision,
+            root_cause="object-resolver-policy-omitted",
+            repair_boundary="enforce owner and tenant policy inside shared object resolver",
+            repeated=repeated,
+            normal=normal_passed,
+            negative=negative_passed,
+            cleanup=True,
+            closed=evidence_closed,
+            confidence=confidence,
+            artifacts=artifacts,
+        )
+
+    @staticmethod
+    def _websocket_decision(
+        own: HttpExchange,
+        cross_first: HttpExchange,
+        cross_second: HttpExchange,
+        denied: HttpExchange,
+    ) -> tuple[CandidateDecision, bool, bool]:
+        """Fail closed unless all controls prove a repeated cross-object message."""
+
+        normal = own.response_status == 101
+        negative = denied.response_status == 401
+        cross_confirmed = (
+            cross_first.response_status == cross_second.response_status == 101
+            and cross_first.response_body == cross_second.response_body
+        )
+        cross_rejected = (
+            cross_first.response_status == cross_second.response_status
+            and cross_first.response_status in {401, 403, 404}
+        )
+        if normal and negative and cross_confirmed:
+            return CandidateDecision.CONFIRMED, True, True
+        if normal and negative and cross_rejected:
+            return CandidateDecision.KILL, False, True
+        return CandidateDecision.HOLD, False, False
 
     async def _vertical_role(self, engagement: Engagement, backend: DirectProxyBackend) -> ValidatorResult:
         base = self._base(engagement)
@@ -912,7 +1149,7 @@ class ValidatorRegistry:
         vulnerable_url = f"{base}/preview?value={quote(marker, safe='')}"
         safe_url = f"{base}/safe-preview?value={quote(marker, safe='')}"
         browser_root = self.artifact_root / "client-xss"
-        browser = BrowserSessionManager(browser_root, engagement)
+        browser = self._browser(browser_root, engagement)
         artifacts: list[str] = []
         try:
             page = await browser.open("client-test", vulnerable_url)
@@ -1006,6 +1243,278 @@ class ValidatorRegistry:
             closed=True,
             confidence=0.98,
             artifacts=list(dict.fromkeys(artifacts)),
+        )
+
+    async def _cors_credentialed_origin(self, engagement: Engagement, backend: DirectProxyBackend) -> ValidatorResult:
+        """Prove credentialed Origin reflection using only Alice's resettable counter."""
+
+        reset_before = await self._reset(engagement, backend)
+        base = self._base(engagement)
+        trusted_origin = "https://trusted.fixture.invalid"
+        evil_origin = "https://evil.fixture.invalid"
+        normal = await backend.send(
+            engagement,
+            "POST",
+            f"{base}/api/cors/transfer",
+            headers={**self._auth("alice"), "Origin": trusted_origin},
+            account_alias="alice",
+            source="fixture",
+        )
+        evil_first = await backend.send(
+            engagement,
+            "POST",
+            f"{base}/api/cors/transfer",
+            headers={**self._auth("alice"), "Origin": evil_origin},
+            account_alias="alice",
+            source="fixture",
+        )
+        evil_second = await backend.send(
+            engagement,
+            "POST",
+            f"{base}/api/cors/transfer",
+            headers={**self._auth("alice"), "Origin": evil_origin},
+            account_alias="alice",
+            source="fixture",
+        )
+        secure = await backend.send(
+            engagement,
+            "POST",
+            f"{base}/api/secure-cors/transfer",
+            headers={**self._auth("alice"), "Origin": evil_origin},
+            account_alias="alice",
+            source="fixture",
+        )
+        cleanup = await self._reset(engagement, backend)
+        normal_headers = normal.response_headers
+        evil_headers = evil_first.response_headers
+        evil_counts = [self._json(item).get("cors_transfer_count") for item in (evil_first, evil_second)]
+        normal_ok = (
+            normal.response_status == 200
+            and normal_headers.get("access-control-allow-origin") == trusted_origin
+            and normal_headers.get("access-control-allow-credentials") == "true"
+            and self._json(normal).get("cors_transfer_count") == 1
+        )
+        repeated = (
+            evil_first.response_status == evil_second.response_status == 200
+            and evil_headers.get("access-control-allow-origin") == evil_origin
+            and evil_headers.get("access-control-allow-credentials") == "true"
+            and evil_second.response_headers.get("access-control-allow-origin") == evil_origin
+            and evil_second.response_headers.get("access-control-allow-credentials") == "true"
+            and evil_counts == [2, 3]
+        )
+        negative = secure.response_status == 403 and not any(
+            name.lower().startswith("access-control-allow-") for name in secure.response_headers
+        )
+        controls = [
+            self._control(
+                "normal",
+                "Trusted origin performs Alice's declared local action with exact ACAO/ACAC headers.",
+                [normal],
+                (
+                    f"status={normal.response_status}; ACAO={normal_headers.get('access-control-allow-origin')}; "
+                    f"ACAC={normal_headers.get('access-control-allow-credentials')}; "
+                    f"count={self._json(normal).get('cors_transfer_count')}"
+                ),
+                normal_ok,
+            ),
+            self._control(
+                "refutation",
+                "The evil origin repeats the same credentialed action and gains two observable self-owned effects.",
+                [evil_first, evil_second],
+                f"statuses={evil_first.response_status},{evil_second.response_status}; "
+                f"ACAO={evil_headers.get('access-control-allow-origin')}; "
+                f"ACAC={evil_headers.get('access-control-allow-credentials')}; counts={evil_counts}",
+                repeated,
+            ),
+            self._control(
+                "negative",
+                "The origin-enforcing equivalent rejects the evil origin without CORS permission headers.",
+                [secure],
+                f"status={secure.response_status}; headers={secure.response_headers}",
+                negative,
+            ),
+        ]
+        finding = self._finding(
+            engagement,
+            title="凭据化 CORS Origin 反射允许恶意 Origin 重复执行自有状态变更",
+            vulnerability_class="cors-misconfiguration",
+            feature="credentialed cross-origin transfer endpoint",
+            endpoint="POST /api/cors/transfer",
+            invariant="凭据化跨域响应只能向明确受信任 Origin 返回精确 ACAO 和 ACAC。",
+            protected_asset="alice 的本地可重置 transfer counter",
+            trust_boundary="trusted fixture Origin 与 evil fixture Origin",
+            enforcement="credentialed CORS Origin allowlist",
+            observed="evil Origin 两次均获得 ACAO=evil Origin、ACAC=true，并使 Alice 自有 counter 从 1 递增至 3。",
+            expected="evil Origin 不得获得 credentialed CORS permission，也不得触发状态变更。",
+            before="可信 Origin 可执行一个自有测试动作。",
+            after="evil Origin 可读取允许凭据的响应并重复触发同一自有动作。",
+            delta="跨越浏览器 Origin 边界获得两次 credentialed self-owned state-change capability",
+            normal=f"trusted Origin 返回 {normal.response_status} 与精确 ACAO/ACAC。",
+            negative=f"secure endpoint 对 evil Origin 返回 {secure.response_status} 且不发出 ACAO/ACAC。",
+            benign=(
+                "这不是普通服务端 POST：响应机械地反射 evil Origin 且允许 credentials，安全等价端点拒绝同一 Origin。"
+            ),
+            refutations=[
+                "trusted-origin 基线",
+                "evil-origin 两次重复",
+                "精确 ACAO/ACAC 比较",
+                "secure allowlist 对照",
+                "reset cleanup",
+            ],
+            steps=[
+                "reset 本地 fixture。",
+                "以 Alice 凭据和 trusted Origin 调用 transfer。",
+                "仅把 Origin 改为 evil Origin 并重复两次。",
+                "调用 secure transfer 的 evil-Origin 对照。",
+                "reset 清理。",
+            ],
+            exposure="仅 Alice 的本地可重置 counter；无第三方数据。",
+            mutation="三次 POST；仅自有 fixture 状态；每次 Origin 是唯一跨域变量。",
+            cleanup=f"reset 返回 {cleanup.response_status} 并恢复本地计数器。",
+            impact="恶意站点可借助用户凭据读取 credentialed CORS 响应并重复发起受保护动作。",
+            severity=Severity.HIGH,
+            confidence=0.99,
+            duplicate="按 credentialed CORS Origin allowlist 修复边界去重。",
+            decision=CandidateDecision.CONFIRMED,
+        )
+        return self._result(
+            "fixture-cors-credentialed-origin",
+            finding,
+            controls,
+            [reset_before, normal, evil_first, evil_second, secure, cleanup],
+            decision=CandidateDecision.CONFIRMED,
+            root_cause="credentialed-cors-origin-reflection",
+            repair_boundary="enforce an exact credentialed Origin allowlist before emitting ACAO and ACAC",
+            repeated=repeated,
+            normal=normal_ok,
+            negative=negative,
+            cleanup=cleanup.response_status == 200,
+            closed=normal_ok and repeated and negative,
+            confidence=0.99,
+        )
+
+    async def _csrf_token_bypass(self, engagement: Engagement, backend: DirectProxyBackend) -> ValidatorResult:
+        """Prove cross-origin tokenless requests mutate only Alice's resettable state."""
+
+        reset_before = await self._reset(engagement, backend)
+        base = self._base(engagement)
+        trusted_origin = "https://trusted.fixture.invalid"
+        evil_origin = "https://evil.fixture.invalid"
+        normal = await backend.send(
+            engagement,
+            "POST",
+            f"{base}/api/csrf/transfer",
+            headers={**self._auth("alice"), "Origin": trusted_origin, "X-Fixture-Csrf": "csrf-alice"},
+            account_alias="alice",
+            source="fixture",
+        )
+        evil_first = await backend.send(
+            engagement,
+            "POST",
+            f"{base}/api/csrf/transfer",
+            headers={**self._auth("alice"), "Origin": evil_origin},
+            account_alias="alice",
+            source="fixture",
+        )
+        evil_second = await backend.send(
+            engagement,
+            "POST",
+            f"{base}/api/csrf/transfer",
+            headers={**self._auth("alice"), "Origin": evil_origin},
+            account_alias="alice",
+            source="fixture",
+        )
+        secure = await backend.send(
+            engagement,
+            "POST",
+            f"{base}/api/secure-csrf/transfer",
+            headers={**self._auth("alice"), "Origin": evil_origin},
+            account_alias="alice",
+            source="fixture",
+        )
+        cleanup = await self._reset(engagement, backend)
+        normal_ok = normal.response_status == 200 and self._json(normal).get("csrf_transfer_count") == 1
+        evil_counts = [self._json(item).get("csrf_transfer_count") for item in (evil_first, evil_second)]
+        repeated = evil_first.response_status == evil_second.response_status == 200 and evil_counts == [2, 3]
+        negative = secure.response_status == 403
+        controls = [
+            self._control(
+                "normal",
+                "A trusted-origin request with Alice's CSRF token performs one self-owned action.",
+                [normal],
+                f"status={normal.response_status}; count={self._json(normal).get('csrf_transfer_count')}",
+                normal_ok,
+            ),
+            self._control(
+                "refutation",
+                "Two evil-origin requests omit the token yet each changes only Alice's resettable state.",
+                [evil_first, evil_second],
+                f"statuses={evil_first.response_status},{evil_second.response_status}; counts={evil_counts}",
+                repeated,
+            ),
+            self._control(
+                "negative",
+                "The origin-and-token-enforcing equivalent rejects the same evil tokenless request.",
+                [secure],
+                f"status={secure.response_status}",
+                negative,
+            ),
+        ]
+        finding = self._finding(
+            engagement,
+            title="CSRF token 与 Origin 校验缺失允许无 token 跨域重复自有状态变更",
+            vulnerability_class="csrf-protection-bypass",
+            feature="credentialed transfer endpoint",
+            endpoint="POST /api/csrf/transfer",
+            invariant="凭据化状态变更必须要求绑定用户会话的 CSRF token 与受信任 Origin。",
+            protected_asset="alice 的本地可重置 transfer counter",
+            trust_boundary="trusted token/origin 与 evil tokenless origin",
+            enforcement="CSRF token and Origin validation",
+            observed="正常 token 请求使 count=1；evil Origin 无 token 请求连续两次使同一自有 count 递增到 2、3。",
+            expected="缺少有效 token 或来自 evil Origin 的请求必须在改变状态前被拒绝。",
+            before="Alice 以可信 Origin 和 token 执行一次自有动作。",
+            after="evil Origin 无 token 也能重复执行该动作。",
+            delta="跨越 CSRF trust boundary 获得两次 tokenless self-owned state-change capability",
+            normal=f"trusted Origin/token 返回 {normal.response_status}。",
+            negative=f"secure endpoint 对 evil tokenless 请求返回 {secure.response_status}。",
+            benign="这不是普通重复提交：仅移除 token 并改为 evil Origin 后仍发生两次效果，安全等价端点拒绝同一请求。",
+            refutations=[
+                "token 正常基线",
+                "evil Origin 无 token 两次重复",
+                "secure CSRF 对照",
+                "effect counter",
+                "reset cleanup",
+            ],
+            steps=[
+                "reset 本地 fixture。",
+                "使用 trusted Origin 和 csrf-alice token 调用 transfer。",
+                "改为 evil Origin、移除 token 后调用两次。",
+                "调用 secure transfer 的同一 tokenless evil-Origin 对照。",
+                "reset 清理。",
+            ],
+            exposure="仅 Alice 的本地可重置 counter；无第三方数据。",
+            mutation="三次 POST；仅自有 fixture 状态；evil 请求只改变 Origin/token 变量。",
+            cleanup=f"reset 返回 {cleanup.response_status} 并恢复本地计数器。",
+            impact="攻击者可诱导已登录用户从恶意 Origin 发起未受 token 保护的状态变更。",
+            severity=Severity.HIGH,
+            confidence=0.99,
+            duplicate="按 CSRF middleware Origin/token enforcement 修复边界去重。",
+            decision=CandidateDecision.CONFIRMED,
+        )
+        return self._result(
+            "fixture-csrf-token-bypass",
+            finding,
+            controls,
+            [reset_before, normal, evil_first, evil_second, secure, cleanup],
+            decision=CandidateDecision.CONFIRMED,
+            root_cause="csrf-origin-and-token-validation-omitted",
+            repair_boundary="enforce Origin validation and a session-bound CSRF token before state mutation",
+            repeated=repeated,
+            normal=normal_ok,
+            negative=negative,
+            cleanup=cleanup.response_status == 200,
+            closed=normal_ok and repeated and negative,
+            confidence=0.99,
         )
 
     async def _false_public(self, engagement: Engagement, backend: DirectProxyBackend) -> ValidatorResult:
@@ -1163,7 +1672,7 @@ class ValidatorRegistry:
         marker = "<span id='budo-safe-control'>SAFE</span>"
         url = f"{base}/safe-preview?value={quote(marker, safe='')}"
         browser_root = self.artifact_root / "safe-client-control"
-        browser = BrowserSessionManager(browser_root, engagement)
+        browser = self._browser(browser_root, engagement)
         try:
             page = await browser.open("safe-client", url)
             absent_first = await page.locator("#budo-safe-control").count() == 0

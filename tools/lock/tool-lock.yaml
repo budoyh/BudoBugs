@@ -22,6 +22,7 @@ versions:
   subfinder: v2.15.0
   dnsx: v1.3.0
   httpx: v1.10.0
+  budo-http-probe: 2026.8.8
   katana: v1.7.0
   urlfinder: v0.0.3
   nuclei: v3.11.0

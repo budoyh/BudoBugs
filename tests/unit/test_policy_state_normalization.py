@@ -105,6 +105,12 @@ def test_lab_scope_accepts_local_names_but_blocks_public_origins() -> None:
         assert target_allowed(engagement, target).allowed
     public = _engagement(EngagementMode.LAB, "https://8.8.8.8")
     assert not target_allowed(public, "https://8.8.8.8").allowed
+    arbitrary = _engagement(EngagementMode.LAB, "http://arbitrary-single-label:8765")
+    assert not target_allowed(arbitrary, "http://arbitrary-single-label:8765").allowed
+    multicast_dns = _engagement(EngagementMode.LAB, "http://device.local:8765")
+    assert not target_allowed(multicast_dns, "http://device.local:8765").allowed
+    public_looking_alias = _engagement(EngagementMode.LAB, "https://api.mypremiumdealership.com")
+    assert not target_allowed(public_looking_alias, "https://api.mypremiumdealership.com").allowed
 
 
 def test_program_tool_policy_rejects_each_unsafe_capability() -> None:
@@ -138,6 +144,18 @@ def test_program_tool_policy_rejects_each_unsafe_capability() -> None:
     require_allowed(allowed)
     with pytest.raises(PolicyDenied):
         require_allowed(tool_allowed(engagement, _tool(modes=[EngagementMode.LAB]), None))
+
+
+def test_source_tool_policy_requires_an_offline_network_contract(tmp_path: Path) -> None:
+    root = tmp_path / "source"
+    root.mkdir()
+    engagement = _engagement(EngagementMode.SOURCE, str(root))
+    unspecified = _tool(modes=[EngagementMode.SOURCE])
+    assert not tool_allowed(engagement, unspecified, str(root)).allowed
+    offline = unspecified.model_copy(update={"network_behavior": ["none"]})
+    assert tool_allowed(engagement, offline, str(root)).allowed
+    online = offline.model_copy(update={"network_behavior": ["downloads vulnerability database"]})
+    assert not tool_allowed(engagement, online, str(root)).allowed
 
 
 def test_phase_state_machine_enforces_order_supports_retry_and_completion() -> None:

@@ -142,8 +142,10 @@ uv run budo engagement authorize vendor-src --json
 uv run budo hunt vendor-src --json
 ```
 
-Program 模式的自动验证仅对两个自有账号执行 scoped、GET-only 的单变量差异请求；不会
-扩大读取第三方数据、自动提交、爆破、压测或执行高变更工具。
+Program 模式只使用授权 scope 和已登记的自有测试账号。默认动作是登录后浏览、实时历史
+检索、Replay 和只读差异请求；`POST/PUT/PATCH/DELETE` 只有在授权前登记为
+`SafeExperimentTemplate`，并且正常对照、重复效果、负对照和清理验证均可机器闭合时才会
+进入 typed executor。系统不会扩大读取第三方数据、自动提交、爆破、压测或执行高变更工具。
 
 ### 本地 source
 
@@ -220,11 +222,13 @@ uv run budo hunt vendor-src --agent-mode codex --dry-run --json
 uv run budo hunt vendor-src --agent-mode codex --json
 ```
 
-每个确定性阶段保存耗时/成本记录；Codex advisory 另保存 model、thread、输入/输出 token、
-缓存和事件收据。模型输出只有在满足 Schema 约束后才能重排候选，并且独立 critic 只能把
-确定性确认降为 `HOLD/KILL`，不能把未通过证据门的候选升级。原始流量先在本地归一化、
-聚类、去重和脱敏，只传必要的结构化摘要。模型 key 只能放环境变量或 keyring；费用、
-数据驻留和服务条款仍由用户确认。详见[模型成本](docs/operations/MODEL_COSTS.md)。
+每个阶段和 Agent turn 都保存耗时/成本、model、可恢复 thread、输入/输出 token、缓存和事件
+收据。coordinator 先从当前确有安全候选的 allow-listed role 中生成 typed route；专业 Agent
+只能在该持久化 assignment 的 action catalog 内选下一步，观察增益不足或候选变化时再路由。
+浏览器、代理、HTTP、工具和 validator 动作由 BudoBugs 执行，并把 Observation 写回同一 Agent Loop。独立 critic 不能把未
+通过证据门的候选升级。原始流量先在本地归一化、聚类、去重和脱敏，只传必要的结构化摘要。
+模型 key 只能放环境变量或 keyring；费用、数据驻留和服务条款仍由用户确认。详见
+[模型成本](docs/operations/MODEL_COSTS.md)。
 
 ## 隐私、秘密与授权边界
 
