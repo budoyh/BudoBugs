@@ -1,6 +1,6 @@
 {
   "@context": "https://openvex.dev/ns/v0.2.0",
-  "@id": "https://github.com/budoyh/BudoBugs/vex/fixture/07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12",
+  "@id": "https://github.com/budoyh/BudoBugs/vex/fixture/ca7d11e68f90dfd7b02cea76e66be77d3d0b55c71edd83bf56c49945d86bf70c",
   "author": "BudoBugs release process",
   "role": "Document Creator",
   "statements": [
@@ -17,7 +17,7 @@
           ]
         },
         {
-          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "@id": "pkg:oci/fixture@sha256%3Aca7d11e68f90dfd7b02cea76e66be77d3d0b55c71edd83bf56c49945d86bf70c?repository_url=index.docker.io%2Fbudobugs",
           "subcomponents": [
             {
               "@id": "pkg:generic/python@3.12.13"
@@ -26,7 +26,7 @@
         }
       ],
       "status": "not_affected",
-      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "timestamp": "2026-08-09T00:56:34.587275+00:00",
       "vulnerability": {
         "name": "CVE-2026-11940"
       }
@@ -44,7 +44,7 @@
           ]
         },
         {
-          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "@id": "pkg:oci/fixture@sha256%3Aca7d11e68f90dfd7b02cea76e66be77d3d0b55c71edd83bf56c49945d86bf70c?repository_url=index.docker.io%2Fbudobugs",
           "subcomponents": [
             {
               "@id": "pkg:generic/python@3.12.13"
@@ -53,7 +53,7 @@
         }
       ],
       "status": "not_affected",
-      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "timestamp": "2026-08-09T00:56:34.587275+00:00",
       "vulnerability": {
         "name": "CVE-2026-11972"
       }
@@ -71,7 +71,7 @@
           ]
         },
         {
-          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "@id": "pkg:oci/fixture@sha256%3Aca7d11e68f90dfd7b02cea76e66be77d3d0b55c71edd83bf56c49945d86bf70c?repository_url=index.docker.io%2Fbudobugs",
           "subcomponents": [
             {
               "@id": "pkg:generic/python@3.12.13"
@@ -80,7 +80,7 @@
         }
       ],
       "status": "not_affected",
-      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "timestamp": "2026-08-09T00:56:34.587275+00:00",
       "vulnerability": {
         "name": "CVE-2026-15308"
       }
@@ -98,7 +98,7 @@
           ]
         },
         {
-          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "@id": "pkg:oci/fixture@sha256%3Aca7d11e68f90dfd7b02cea76e66be77d3d0b55c71edd83bf56c49945d86bf70c?repository_url=index.docker.io%2Fbudobugs",
           "subcomponents": [
             {
               "@id": "pkg:generic/python@3.12.13"
@@ -107,7 +107,7 @@
         }
       ],
       "status": "not_affected",
-      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "timestamp": "2026-08-09T00:56:34.587275+00:00",
       "vulnerability": {
         "name": "CVE-2026-3298"
       }
@@ -125,7 +125,7 @@
           ]
         },
         {
-          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "@id": "pkg:oci/fixture@sha256%3Aca7d11e68f90dfd7b02cea76e66be77d3d0b55c71edd83bf56c49945d86bf70c?repository_url=index.docker.io%2Fbudobugs",
           "subcomponents": [
             {
               "@id": "pkg:generic/python@3.12.13"
@@ -134,7 +134,7 @@
         }
       ],
       "status": "not_affected",
-      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "timestamp": "2026-08-09T00:56:34.587275+00:00",
       "vulnerability": {
         "name": "CVE-2026-3644"
       }
@@ -152,7 +152,7 @@
           ]
         },
         {
-          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "@id": "pkg:oci/fixture@sha256%3Aca7d11e68f90dfd7b02cea76e66be77d3d0b55c71edd83bf56c49945d86bf70c?repository_url=index.docker.io%2Fbudobugs",
           "subcomponents": [
             {
               "@id": "pkg:generic/python@3.12.13"
@@ -161,7 +161,7 @@
         }
       ],
       "status": "not_affected",
-      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "timestamp": "2026-08-09T00:56:34.587275+00:00",
       "vulnerability": {
         "name": "CVE-2026-4224"
       }
@@ -179,7 +179,7 @@
           ]
         },
         {
-          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "@id": "pkg:oci/fixture@sha256%3Aca7d11e68f90dfd7b02cea76e66be77d3d0b55c71edd83bf56c49945d86bf70c?repository_url=index.docker.io%2Fbudobugs",
           "subcomponents": [
             {
               "@id": "pkg:generic/python@3.12.13"
@@ -188,7 +188,7 @@
         }
       ],
       "status": "not_affected",
-      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "timestamp": "2026-08-09T00:56:34.587275+00:00",
       "vulnerability": {
         "name": "CVE-2026-4786"
       }
@@ -206,7 +206,7 @@
           ]
         },
         {
-          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "@id": "pkg:oci/fixture@sha256%3Aca7d11e68f90dfd7b02cea76e66be77d3d0b55c71edd83bf56c49945d86bf70c?repository_url=index.docker.io%2Fbudobugs",
           "subcomponents": [
             {
               "@id": "pkg:generic/python@3.12.13"
@@ -215,7 +215,7 @@
         }
       ],
       "status": "not_affected",
-      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "timestamp": "2026-08-09T00:56:34.587275+00:00",
       "vulnerability": {
         "name": "CVE-2026-6100"
       }
@@ -233,7 +233,7 @@
           ]
         },
         {
-          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "@id": "pkg:oci/fixture@sha256%3Aca7d11e68f90dfd7b02cea76e66be77d3d0b55c71edd83bf56c49945d86bf70c?repository_url=index.docker.io%2Fbudobugs",
           "subcomponents": [
             {
               "@id": "pkg:generic/python@3.12.13"
@@ -242,7 +242,7 @@
         }
       ],
       "status": "not_affected",
-      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "timestamp": "2026-08-09T00:56:34.587275+00:00",
       "vulnerability": {
         "name": "CVE-2026-7210"
       }
@@ -260,7 +260,7 @@
           ]
         },
         {
-          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "@id": "pkg:oci/fixture@sha256%3Aca7d11e68f90dfd7b02cea76e66be77d3d0b55c71edd83bf56c49945d86bf70c?repository_url=index.docker.io%2Fbudobugs",
           "subcomponents": [
             {
               "@id": "pkg:generic/python@3.12.13"
@@ -269,7 +269,7 @@
         }
       ],
       "status": "not_affected",
-      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "timestamp": "2026-08-09T00:56:34.587275+00:00",
       "vulnerability": {
         "name": "CVE-2026-9669"
       }
@@ -287,7 +287,7 @@
           ]
         },
         {
-          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "@id": "pkg:oci/fixture@sha256%3Aca7d11e68f90dfd7b02cea76e66be77d3d0b55c71edd83bf56c49945d86bf70c?repository_url=index.docker.io%2Fbudobugs",
           "subcomponents": [
             {
               "@id": "pkg:apk/alpine/sqlite-libs@3.51.2-r0?arch=x86_64&distro=alpine-3.23.5&upstream=sqlite"
@@ -296,7 +296,7 @@
         }
       ],
       "status": "not_affected",
-      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "timestamp": "2026-08-09T00:56:34.587275+00:00",
       "vulnerability": {
         "name": "CVE-2026-11822"
       }
@@ -314,7 +314,7 @@
           ]
         },
         {
-          "@id": "pkg:oci/fixture@sha256%3A07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12?repository_url=index.docker.io%2Fbudobugs",
+          "@id": "pkg:oci/fixture@sha256%3Aca7d11e68f90dfd7b02cea76e66be77d3d0b55c71edd83bf56c49945d86bf70c?repository_url=index.docker.io%2Fbudobugs",
           "subcomponents": [
             {
               "@id": "pkg:apk/alpine/sqlite-libs@3.51.2-r0?arch=x86_64&distro=alpine-3.23.5&upstream=sqlite"
@@ -323,12 +323,12 @@
         }
       ],
       "status": "not_affected",
-      "timestamp": "2026-08-08T18:21:18.441082+00:00",
+      "timestamp": "2026-08-09T00:56:34.587275+00:00",
       "vulnerability": {
         "name": "CVE-2026-11824"
       }
     }
   ],
-  "timestamp": "2026-08-08T18:21:18.441082+00:00",
+  "timestamp": "2026-08-09T00:56:34.587275+00:00",
   "version": 1
 }

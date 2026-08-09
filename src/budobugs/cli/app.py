@@ -15,12 +15,21 @@ import typer
 from rich.console import Console
 
 from budobugs import __version__
+from budobugs.core.identifiers import new_id
 from budobugs.core.io import atomic_write_json
 from budobugs.core.paths import WorkspacePaths
 from budobugs.core.policy import target_allowed
 from budobugs.evidence.pack import pack_finding
+from budobugs.knowledge.vendor import VendorKnowledgeBase, vendor_key
 from budobugs.labs import LabManager
-from budobugs.models import Engagement, EngagementMode, PhaseName, Target
+from budobugs.models import (
+    Engagement,
+    EngagementMode,
+    OutcomeStatus,
+    PhaseName,
+    PlatformOutcome,
+    Target,
+)
 from budobugs.orchestration import HuntEngine, RepositoryService
 from budobugs.reporting.generator import ReportGenerator
 from budobugs.storage.secrets import SecretStore
@@ -39,6 +48,7 @@ findings_app = typer.Typer(help="候选与证据门禁。")
 report_app = typer.Typer(help="只从 critic-confirmed finding 生成报告。")
 proxy_app = typer.Typer(help="Caido、Burp、ZAP、HAR 和 direct backend 诊断。")
 mcp_app = typer.Typer(help="BudoBugs 本地 MCP 诊断。")
+outcome_app = typer.Typer(help="记录平台反馈并更新厂商长期记忆与优先级。")
 app.add_typer(tools_app, name="tools")
 app.add_typer(lab_app, name="lab")
 app.add_typer(engagement_app, name="engagement")
@@ -47,6 +57,7 @@ app.add_typer(findings_app, name="findings")
 app.add_typer(report_app, name="report")
 app.add_typer(proxy_app, name="proxy")
 app.add_typer(mcp_app, name="mcp")
+app.add_typer(outcome_app, name="outcome")
 console = Console()
 
 
@@ -249,7 +260,10 @@ def engagement_authorize(engagement_id: str, json_output: Annotated[bool, typer.
 def engagement_account_set(
     engagement_id: str,
     alias: Annotated[str, typer.Option(help="自有测试账号别名，如 alice/bob。")],
-    headers_env: Annotated[str, typer.Option(help='包含 {"headers": {...}} JSON 的环境变量名。')],
+    headers_env: Annotated[
+        str,
+        typer.Option(help='包含 {"headers": {...}, "login_url": "..."} JSON 的环境变量名。'),
+    ],
     json_output: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
     """将账号请求头从环境变量写入系统 keyring，并仅在 engagement 中保存引用。"""
@@ -263,13 +277,16 @@ def engagement_account_set(
         payload = json.loads(raw)
     except json.JSONDecodeError as exc:
         raise typer.BadParameter("account header environment value must be JSON") from exc
-    headers = payload.get("headers") if isinstance(payload, dict) else None
-    if (
-        not isinstance(headers, dict)
-        or not headers
-        or not all(isinstance(name, str) and isinstance(value, str) for name, value in headers.items())
+    headers = payload.get("headers", {}) if isinstance(payload, dict) else None
+    login_url = payload.get("login_url") if isinstance(payload, dict) else None
+    if not isinstance(headers, dict) or not all(
+        isinstance(name, str) and isinstance(value, str) for name, value in headers.items()
     ):
-        raise typer.BadParameter("account JSON must contain non-empty string headers")
+        raise typer.BadParameter("account JSON headers must be a string mapping")
+    if login_url is not None and not isinstance(login_url, str):
+        raise typer.BadParameter("account JSON login_url must be a string")
+    if not headers and not login_url:
+        raise typer.BadParameter("account JSON must contain headers or login_url")
     service = _service()
     engagement = service.load_engagement(engagement_id)
     store = SecretStore(service.paths.runtime_home / "secrets" / "fallback.json")
@@ -288,7 +305,21 @@ def hunt(
     phase: Annotated[str | None, typer.Option(help="保留用于编排器阶段选择；lab fixture 会完成闭环。")] = None,
     agent_mode: Annotated[
         str | None,
-        typer.Option("--agent-mode", help="AI advisory 模式：disabled 或 codex。"),
+        typer.Option("--agent-mode", help="Agent Loop 提案模式：disabled 或 codex。"),
+    ] = None,
+    proxy: Annotated[
+        str,
+        typer.Option("--proxy", help="auto、direct、har、caido、burp 或 zap。"),
+    ] = "auto",
+    har: Annotated[Path | None, typer.Option("--har", help="选择 HAR backend 时的授权流量文件。")] = None,
+    interactive_login: Annotated[
+        bool,
+        typer.Option("--interactive-login", help="遇到登录/MFA/验证码时暂停一次并持久化恢复。"),
+    ] = False,
+    headed: Annotated[bool, typer.Option("--headed", help="显示 Playwright 浏览器。")] = False,
+    agent_stop_after_turns: Annotated[
+        int | None,
+        typer.Option("--agent-stop-after-turns", hidden=True),
     ] = None,
     dry_run: Annotated[
         bool,
@@ -300,10 +331,24 @@ def hunt(
         raise typer.BadParameter("phase must be recon or all")
     if agent_mode is not None and agent_mode.lower() not in {"disabled", "codex"}:
         raise typer.BadParameter("agent-mode must be disabled or codex")
+    if proxy.lower() not in {"auto", "direct", "har", "caido", "burp", "zap"}:
+        raise typer.BadParameter("proxy must be auto, direct, har, caido, burp, or zap")
+    if proxy.lower() == "har" and har is None:
+        raise typer.BadParameter("--proxy har requires --har")
+    if interactive_login and not headed:
+        raise typer.BadParameter("--interactive-login requires --headed")
     if dry_run and resume:
         raise typer.BadParameter("--dry-run cannot be combined with --resume")
     service = _service()
-    engine = HuntEngine(service, agent_mode=agent_mode)
+    engine = HuntEngine(
+        service,
+        agent_mode=agent_mode,
+        proxy_backend=proxy,
+        har_path=har,
+        interactive_login=interactive_login,
+        headless=not headed,
+        agent_stop_after_turns=agent_stop_after_turns,
+    )
     engagement = service.load_engagement(engagement_id)
     if dry_run:
         _emit(engine.estimate(engagement), json_output)
@@ -324,6 +369,57 @@ def hunt(
             "killed_finding_id": result.killed_finding_id,
             "report_markdown": result.report_markdown,
             "report_html": result.report_html,
+            "confirmed_finding_ids": list(result.confirmed_finding_ids),
+            "killed_finding_ids": list(result.killed_finding_ids),
+            "report_markdowns": list(result.report_markdowns),
+            "report_htmls": list(result.report_htmls),
+            "agent_loop_receipt": result.agent_loop_receipt,
+        },
+        json_output,
+    )
+
+
+@outcome_app.command("record")
+def outcome_record(
+    finding_id: str,
+    status: Annotated[OutcomeStatus, typer.Option("--status")],
+    reward: Annotated[float, typer.Option("--reward", min=0)] = 0,
+    reason: Annotated[str, typer.Option("--reason")] = "platform feedback recorded",
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """Persist platform disposition and feed it into future bounty ranking and false-positive rules."""
+
+    service = _service()
+    finding = service.load_finding(finding_id)
+    engagement = service.load_engagement(finding.engagement_id)
+    outcome = PlatformOutcome(
+        outcome_id=new_id("platform-outcome"),
+        finding_id=finding_id,
+        vendor_key=vendor_key(engagement.platform, engagement.vendor),
+        status=status,
+        reward=reward,
+        reason=reason,
+    )
+    knowledge = VendorKnowledgeBase(service.store).record_outcome(engagement, outcome)
+    service.audit(
+        "platform-outcome.recorded",
+        "human-feedback-command",
+        engagement_id=engagement.engagement_id,
+        details={
+            "finding_id": finding_id,
+            "status": status.value,
+            "reward": reward,
+            "outcome_id": outcome.outcome_id,
+        },
+    )
+    _emit(
+        {
+            "outcome": outcome.model_dump(mode="json"),
+            "updated_priors": {
+                "acceptance": knowledge.acceptance_prior,
+                "duplicate_risk": knowledge.duplicate_risk_prior,
+                "impact_multiplier": knowledge.impact_multiplier,
+            },
         },
         json_output,
     )

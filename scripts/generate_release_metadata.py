@@ -287,7 +287,9 @@ def main() -> int:
             "osv-scanner scan source --lockfile uv.lock --lockfile pnpm-lock.yaml "
             "--format json --output-file release/scans/osv.json",
             "trivy fs --format json --scanners vuln,secret,misconfig --severity HIGH,CRITICAL "
-            "--skip-dirs .budobugs --skip-dirs .venv --skip-dirs node_modules .",
+            "--skip-dirs .git --skip-dirs .budobugs --skip-dirs .venv --skip-dirs node_modules "
+            "--skip-dirs dist --skip-dirs engagements --skip-dirs findings --skip-dirs runs "
+            "--skip-dirs release .",
             "trivy image --input .budobugs/fixture-release.tar --format json "
             "--scanners vuln,secret,misconfig --severity HIGH,CRITICAL",
             "grype docker-archive:.budobugs/fixture-release.tar --output json "

@@ -3,11 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from tests.conftest import make_exchange
+from tests.conftest import make_exchange, make_finding
 
+from budobugs.core.identifiers import new_id
 from budobugs.evidence.pack import EvidencePackBuilder, EvidencePackError, pack_finding
-from budobugs.models import CandidateStatus, CriticVerdict, Engagement, HttpExchange
-from budobugs.orchestration.engine import HuntEngine
+from budobugs.models import CandidateStatus, ControlExperiment, CriticVerdict, Engagement, HttpExchange
 from budobugs.reporting.generator import ReportGenerationError, ReportGenerator
 from budobugs.validation.critic import AdversarialCritic
 from budobugs.validation.gates import EvidenceGate
@@ -15,8 +15,26 @@ from budobugs.validation.gates import EvidenceGate
 
 def _fixture_findings(engagement: Engagement) -> tuple[object, object, list[object], list[object], list[HttpExchange]]:
     exchanges = [make_exchange(exchange_id=f"exchange-{index:03d}") for index in range(1, 8)]
-    valid, killed, valid_controls, killed_controls = HuntEngine._make_findings(engagement, exchanges)
-    return valid, killed, valid_controls, killed_controls, exchanges
+    valid = make_finding(engagement_id=engagement.engagement_id)
+    controls = [
+        ControlExperiment(
+            control_id=new_id("control"),
+            kind="normal",
+            description="bob reads its self-owned object",
+            request_exchange_ids=[exchanges[0].exchange_id],
+            observed_result="HTTP 200",
+            supports_finding=True,
+        ),
+        ControlExperiment(
+            control_id=new_id("control"),
+            kind="negative",
+            description="anonymous access is denied",
+            request_exchange_ids=[exchanges[1].exchange_id],
+            observed_result="HTTP 401",
+            supports_finding=True,
+        ),
+    ]
+    return valid, valid.model_copy(), controls, list(controls), exchanges
 
 
 def test_evidence_gate_critic_and_report_are_artifact_consistent(
@@ -69,3 +87,30 @@ def test_export_fails_closed_when_a_secret_is_added(tmp_path: Path, lab_engageme
     (pack / "tool-output" / "leak.txt").write_text("Bearer abcdefghijklmnop", encoding="utf-8")
     with pytest.raises(EvidencePackError, match="secret scan failed"):
         pack_finding(pack, tmp_path / "export.zip")
+
+
+def test_evidence_pack_keeps_browser_credentials_and_opaque_traces_private(
+    tmp_path: Path,
+    lab_engagement: Engagement,
+) -> None:
+    valid, _killed, controls, _killed_controls, exchanges = _fixture_findings(lab_engagement)
+    browser = tmp_path / "browser" / "alice"
+    (browser / "dom").mkdir(parents=True)
+    state = browser / "storage-state.json"
+    state.write_text('{"cookies":[{"value":"opaque-session-value"}]}', encoding="utf-8")
+    trace = browser / "trace.zip"
+    trace.write_bytes(b"opaque trace with an unscannable session")
+    har = browser / "traffic.har"
+    har.write_text('{"log":{"entries":[]}}', encoding="utf-8")
+    dom = browser / "dom" / "page.html"
+    dom.write_text("<main>safe rendered evidence</main>", encoding="utf-8")
+    pack = EvidencePackBuilder(tmp_path / "findings").build(
+        valid,
+        exchanges[:5],
+        controls,
+        browser_artifacts=[state, trace, har, dom],
+    )
+    copied = {path.name for path in (pack / "browser-trace").iterdir()}
+    assert any(name.endswith("page.html") for name in copied)
+    assert not any("storage-state" in name for name in copied)
+    assert not any(name.endswith((".har", ".zip")) for name in copied)

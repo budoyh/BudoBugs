@@ -3,11 +3,181 @@
   "Trivy": {
     "Version": "0.73.0"
   },
-  "ReportID": "019fe2a4-f782-70c2-91fd-8ccca5044369",
-  "CreatedAt": "2026-08-09T02:31:29.9220499+08:00",
+  "ReportID": "019fe402-57e6-704e-8b13-3ad914405dd4",
+  "CreatedAt": "2026-08-09T08:53:06.6620202+08:00",
+  "ArtifactID": "sha256:b27c782f7f85ca57df666ddb842a391cd14ca7fbba89c321f1ec0a696ce99727",
   "ArtifactName": ".",
-  "ArtifactType": "filesystem",
+  "ArtifactType": "repository",
+  "Metadata": {
+    "RepoURL": "https://github.com/budoyh/BudoBugs.git",
+    "Branch": "main",
+    "Commit": "f8ee974e992a627e4ba57bef9295fd885e4b82da",
+    "CommitMsg": "fix: harden cross-platform release gates",
+    "Author": "budoyh \u003cbudo0422@outlook.com\u003e",
+    "Committer": "budoyh \u003cbudo0422@outlook.com\u003e"
+  },
   "Results": [
+    {
+      "Target": ".tools/codex-cli/package-lock.json",
+      "Class": "lang-pkgs",
+      "Type": "npm",
+      "Packages": [
+        {
+          "ID": "@openai/codex@0.147.0",
+          "Name": "@openai/codex",
+          "Identifier": {
+            "PURL": "pkg:npm/%40openai/codex@0.147.0",
+            "UID": "54884cdacee388f9"
+          },
+          "Version": "0.147.0",
+          "Licenses": [
+            "Apache-2.0"
+          ],
+          "Relationship": "direct",
+          "DependsOn": [
+            "@openai/codex-darwin-arm64@0.147.0-darwin-arm64",
+            "@openai/codex-darwin-x64@0.147.0-darwin-x64",
+            "@openai/codex-linux-arm64@0.147.0-linux-arm64",
+            "@openai/codex-linux-x64@0.147.0-linux-x64",
+            "@openai/codex-win32-arm64@0.147.0-win32-arm64",
+            "@openai/codex-win32-x64@0.147.0-win32-x64"
+          ],
+          "Locations": [
+            {
+              "StartLine": 11,
+              "EndLine": 30
+            }
+          ],
+          "AnalyzedBy": "npm"
+        },
+        {
+          "ID": "@openai/codex@0.147.0-darwin-arm64",
+          "Name": "@openai/codex",
+          "Identifier": {
+            "PURL": "pkg:npm/%40openai/codex@0.147.0-darwin-arm64",
+            "UID": "650d9e300f17cf3a"
+          },
+          "Version": "0.147.0-darwin-arm64",
+          "Licenses": [
+            "Apache-2.0"
+          ],
+          "Indirect": true,
+          "Relationship": "indirect",
+          "Locations": [
+            {
+              "StartLine": 31,
+              "EndLine": 47
+            }
+          ],
+          "AnalyzedBy": "npm"
+        },
+        {
+          "ID": "@openai/codex@0.147.0-darwin-x64",
+          "Name": "@openai/codex",
+          "Identifier": {
+            "PURL": "pkg:npm/%40openai/codex@0.147.0-darwin-x64",
+            "UID": "e13139258ec475df"
+          },
+          "Version": "0.147.0-darwin-x64",
+          "Licenses": [
+            "Apache-2.0"
+          ],
+          "Indirect": true,
+          "Relationship": "indirect",
+          "Locations": [
+            {
+              "StartLine": 48,
+              "EndLine": 64
+            }
+          ],
+          "AnalyzedBy": "npm"
+        },
+        {
+          "ID": "@openai/codex@0.147.0-linux-arm64",
+          "Name": "@openai/codex",
+          "Identifier": {
+            "PURL": "pkg:npm/%40openai/codex@0.147.0-linux-arm64",
+            "UID": "5a3f32dabfa13a11"
+          },
+          "Version": "0.147.0-linux-arm64",
+          "Licenses": [
+            "Apache-2.0"
+          ],
+          "Indirect": true,
+          "Relationship": "indirect",
+          "Locations": [
+            {
+              "StartLine": 65,
+              "EndLine": 81
+            }
+          ],
+          "AnalyzedBy": "npm"
+        },
+        {
+          "ID": "@openai/codex@0.147.0-linux-x64",
+          "Name": "@openai/codex",
+          "Identifier": {
+            "PURL": "pkg:npm/%40openai/codex@0.147.0-linux-x64",
+            "UID": "6a1366b6b0a93320"
+          },
+          "Version": "0.147.0-linux-x64",
+          "Licenses": [
+            "Apache-2.0"
+          ],
+          "Indirect": true,
+          "Relationship": "indirect",
+          "Locations": [
+            {
+              "StartLine": 82,
+              "EndLine": 98
+            }
+          ],
+          "AnalyzedBy": "npm"
+        },
+        {
+          "ID": "@openai/codex@0.147.0-win32-arm64",
+          "Name": "@openai/codex",
+          "Identifier": {
+            "PURL": "pkg:npm/%40openai/codex@0.147.0-win32-arm64",
+            "UID": "42f5da5d0fb961b8"
+          },
+          "Version": "0.147.0-win32-arm64",
+          "Licenses": [
+            "Apache-2.0"
+          ],
+          "Indirect": true,
+          "Relationship": "indirect",
+          "Locations": [
+            {
+              "StartLine": 99,
+              "EndLine": 115
+            }
+          ],
+          "AnalyzedBy": "npm"
+        },
+        {
+          "ID": "@openai/codex@0.147.0-win32-x64",
+          "Name": "@openai/codex",
+          "Identifier": {
+            "PURL": "pkg:npm/%40openai/codex@0.147.0-win32-x64",
+            "UID": "2b6676855d099a0b"
+          },
+          "Version": "0.147.0-win32-x64",
+          "Licenses": [
+            "Apache-2.0"
+          ],
+          "Indirect": true,
+          "Relationship": "indirect",
+          "Locations": [
+            {
+              "StartLine": 116,
+              "EndLine": 132
+            }
+          ],
+          "AnalyzedBy": "npm"
+        }
+      ]
+    },
     {
       "Target": "pnpm-lock.yaml",
       "Class": "lang-pkgs",
@@ -18,21 +188,21 @@
           "Name": "@caido/sdk-client",
           "Identifier": {
             "PURL": "pkg:npm/%40caido/sdk-client@0.5.0",
-            "UID": "acdc12b6edd8d0"
+            "UID": "a3d14fe196ff9c93"
           },
           "Version": "0.5.0",
           "Relationship": "direct",
           "DependsOn": [
+            "@graphql-typed-document-node/core@3.2.0(graphql@16.14.2)",
             "@urql/exchange-auth@3.0.0(@urql/core@6.0.3(graphql@16.14.2))",
             "wonka@6.3.6",
-            "graphql-ws@6.2.1(graphql@16.14.2)",
-            "zod@4.4.3",
-            "@graphql-typed-document-node/core@3.2.0(graphql@16.14.2)",
-            "graphql@16.14.2",
+            "@urql/core@6.0.3(graphql@16.14.2)",
             "semver@7.8.5",
+            "zod@4.4.3",
             "@caido/sdk-shared@0.2.2",
             "@caido/server-auth@0.2.0",
-            "@urql/core@6.0.3(graphql@16.14.2)"
+            "graphql@16.14.2",
+            "graphql-ws@6.2.1(graphql@16.14.2)"
           ],
           "AnalyzedBy": "pnpm"
         },
@@ -82,16 +252,16 @@
           "Name": "@caido/server-auth",
           "Identifier": {
             "PURL": "pkg:npm/%40caido/server-auth@0.2.0",
-            "UID": "e6374388fcbd4e56"
+            "UID": "8422aef6d6d75445"
           },
           "Version": "0.2.0",
           "Indirect": true,
           "Relationship": "indirect",
           "DependsOn": [
-            "graphql-ws@6.2.1(graphql@16.14.2)",
-            "@urql/core@6.0.3(graphql@16.14.2)",
             "graphql@16.14.2",
-            "graphql-tag@2.12.7(graphql@16.14.2)"
+            "graphql-tag@2.12.7(graphql@16.14.2)",
+            "graphql-ws@6.2.1(graphql@16.14.2)",
+            "@urql/core@6.0.3(graphql@16.14.2)"
           ],
           "AnalyzedBy": "pnpm"
         },
@@ -143,14 +313,14 @@
           "Name": "@urql/exchange-auth",
           "Identifier": {
             "PURL": "pkg:npm/%40urql/exchange-auth@3.0.0",
-            "UID": "29a2940428338e02"
+            "UID": "9afe249ea6a5dd95"
           },
           "Version": "3.0.0",
           "Indirect": true,
           "Relationship": "indirect",
           "DependsOn": [
-            "wonka@6.3.6",
-            "@urql/core@6.0.3(graphql@16.14.2)"
+            "@urql/core@6.0.3(graphql@16.14.2)",
+            "wonka@6.3.6"
           ],
           "AnalyzedBy": "pnpm"
         },
@@ -171,14 +341,14 @@
           "Name": "graphql-tag",
           "Identifier": {
             "PURL": "pkg:npm/graphql-tag@2.12.7",
-            "UID": "62986010572d93a8"
+            "UID": "d0de8cef5f9a30a1"
           },
           "Version": "2.12.7",
           "Indirect": true,
           "Relationship": "indirect",
           "DependsOn": [
-            "graphql@16.14.2",
-            "tslib@2.8.1"
+            "tslib@2.8.1",
+            "graphql@16.14.2"
           ],
           "AnalyzedBy": "pnpm"
         },

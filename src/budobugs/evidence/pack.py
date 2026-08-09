@@ -146,7 +146,12 @@ class EvidencePackBuilder:
             source = source_value.resolve()
             if not source.is_file() or source.is_symlink() or source.stat().st_size > 200 * 1024 * 1024:
                 raise EvidencePackError(f"invalid browser artifact: {source_value}")
-            if source.suffix.lower() not in {".har", ".zip", ".html", ".json", ".jsonl"}:
+            lowered_parts = {part.lower() for part in source.parts}
+            if "profile" in lowered_parts or source.name.lower() == "storage-state.json":
+                continue
+            # HAR and Playwright traces are retained in the private run directory. They may
+            # contain opaque cookies or tokens that a text secret scan cannot reliably detect.
+            if source.suffix.lower() not in {".html", ".json", ".jsonl"}:
                 continue
             destination = pack / "browser-trace" / f"{index:03d}-{source.name[:100]}"
             shutil.copy2(source, destination)

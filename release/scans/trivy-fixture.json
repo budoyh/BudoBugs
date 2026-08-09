@@ -3,18 +3,18 @@
   "Trivy": {
     "Version": "0.73.0"
   },
-  "ReportID": "019fe273-244c-7df8-a972-eaba7bab07c5",
-  "CreatedAt": "2026-08-09T01:37:04.5889157+08:00",
-  "ArtifactID": "sha256:c6c94e638c117f41e666d6a4053c52ca850576b0c51a724086b5c4d318efe0b8",
+  "ReportID": "019fe403-bf17-7035-8a8d-ca9d7b18b472",
+  "CreatedAt": "2026-08-09T08:54:38.6150137+08:00",
+  "ArtifactID": "sha256:9282d1fd52e3d5290bd2b70f15cad0300ebbfcc2303455302ac9ea71479b8e09",
   "ArtifactName": ".budobugs/fixture-release.tar",
   "ArtifactType": "container_image",
   "Metadata": {
-    "Size": 146748928,
+    "Size": 146778624,
     "OS": {
       "Family": "alpine",
       "Name": "3.23.5"
     },
-    "ImageID": "sha256:e3062ac72c11ac749cecd43bc570a1f2a440bfab1f6d6986c88ee373a7b43c02",
+    "ImageID": "sha256:df98f8ee7d326d683dc6b9e2b7621294c1d30aa7efa7b61d7c8d3549c667c7fa",
     "DiffIDs": [
       "sha256:31ad4a471c6852bfec14d757cc75a566c82a9769f12c3918cf6bf52cc0eeb3d0",
       "sha256:99f6b134e36b97e095565b7e25ce6620505d64680d57f691539aed6820d9015a",
@@ -24,17 +24,17 @@
       "sha256:142bc4a085961b7d4f63233a7c2dd9f1ec232d117528c8d158be1ecc9c028748",
       "sha256:741e167e93a833573d17d32710726bc8a24afaea52312cd43940e3dcb5bc7239",
       "sha256:2eeaba84a967db3e5e4595906bb07d4671b16cb29016db366bd98b98f22990de",
-      "sha256:3ea313b98b052377de5817505ed507b99c2a5a000cd8c50f5d1b1e2de21cd4e3",
-      "sha256:a1e34e9b709728c41c47bff99eda64a46934df99e3376f167f648e7c92a96b54",
-      "sha256:8f2a2bdb9a90317b567d9171f7b51175a581d7a670d6299d4abe84be2f3362a2"
+      "sha256:be767ff25258faa32473f680f0876dea7306c7d462145808748f28032cc638b8",
+      "sha256:d36d167be714e42985d7635e5c3f36fa9e8418cf94ecfdf5318c0a015c62baa0",
+      "sha256:73c9bc9f2b0478635070ddeeec4eeb948a20cc7d27ccf798bd41ae6fa85a11ce"
     ],
     "RepoTags": [
-      "budobugs/fixture:local"
+      "budobugs/fixture:acceptance"
     ],
-    "Reference": "budobugs/fixture:local",
+    "Reference": "budobugs/fixture:acceptance",
     "ImageConfig": {
       "architecture": "amd64",
-      "created": "2026-08-09T01:36:30.206942483+08:00",
+      "created": "2026-08-09T08:54:20.081595231+08:00",
       "history": [
         {
           "created": "2026-06-22T19:20:09.106506185Z",
@@ -115,34 +115,34 @@
           "created_by": "/bin/sh -c uv venv /app/.venv     \u0026\u0026 uv pip sync --python /app/.venv/bin/python --require-hashes /app/requirements.lock     \u0026\u0026 rm /usr/local/bin/uv"
         },
         {
-          "created": "2026-08-08T17:36:22.181590218Z",
-          "created_by": "/bin/sh -c #(nop) COPY file:ed01310ed0dce1a2446a302847d5ddfacd90ce0356b9828795cf2c141b045a6d in ./fixture_app.py "
+          "created": "2026-08-09T00:54:14.868154379Z",
+          "created_by": "/bin/sh -c #(nop) COPY file:ac3d47205507c32e705e59b06bda3cb50cd5c726257ae54d2f5148cbd3e19997 in ./fixture_app.py "
         },
         {
-          "created": "2026-08-08T17:36:22.887143719Z",
+          "created": "2026-08-09T00:54:15.533827025Z",
           "created_by": "/bin/sh -c #(nop) COPY file:c4b060f61c89f58eab3008a3964c8456ccbb09a4a596e6a7f6bb5902c1a048b1 in /licenses/BudoBugs/LICENSE "
         },
         {
-          "created": "2026-08-09T01:36:26.322890509+08:00",
+          "created": "2026-08-09T08:54:17.990361449+08:00",
           "created_by": "/bin/sh -c chown -R 65532:65532 /app /licenses/BudoBugs"
         },
         {
-          "created": "2026-08-09T01:36:27.5303391+08:00",
+          "created": "2026-08-09T08:54:18.628732755+08:00",
           "created_by": "/bin/sh -c #(nop)  USER 65532:65532",
           "empty_layer": true
         },
         {
-          "created": "2026-08-09T01:36:28.440234888+08:00",
+          "created": "2026-08-09T08:54:19.157752233+08:00",
           "created_by": "/bin/sh -c #(nop)  EXPOSE 8765",
           "empty_layer": true
         },
         {
-          "created": "2026-08-09T01:36:29.290299137+08:00",
+          "created": "2026-08-09T08:54:19.621968143+08:00",
           "created_by": "/bin/sh -c #(nop)  HEALTHCHECK \u0026{[\"CMD\" \"/app/.venv/bin/python\" \"-c\" \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/healthz', timeout=2)\"] \"5s\" \"3s\" \"0s\" \"0s\" '\\x14'}",
           "empty_layer": true
         },
         {
-          "created": "2026-08-09T01:36:30.206942483+08:00",
+          "created": "2026-08-09T08:54:20.081595231+08:00",
           "created_by": "/bin/sh -c #(nop)  CMD [\"/app/.venv/bin/uvicorn\" \"fixture_app:app\" \"--host\" \"0.0.0.0\" \"--port\" \"8765\" \"--no-access-log\"]",
           "empty_layer": true
         }
@@ -159,9 +159,9 @@
           "sha256:142bc4a085961b7d4f63233a7c2dd9f1ec232d117528c8d158be1ecc9c028748",
           "sha256:741e167e93a833573d17d32710726bc8a24afaea52312cd43940e3dcb5bc7239",
           "sha256:2eeaba84a967db3e5e4595906bb07d4671b16cb29016db366bd98b98f22990de",
-          "sha256:3ea313b98b052377de5817505ed507b99c2a5a000cd8c50f5d1b1e2de21cd4e3",
-          "sha256:a1e34e9b709728c41c47bff99eda64a46934df99e3376f167f648e7c92a96b54",
-          "sha256:8f2a2bdb9a90317b567d9171f7b51175a581d7a670d6299d4abe84be2f3362a2"
+          "sha256:be767ff25258faa32473f680f0876dea7306c7d462145808748f28032cc638b8",
+          "sha256:d36d167be714e42985d7635e5c3f36fa9e8418cf94ecfdf5318c0a015c62baa0",
+          "sha256:73c9bc9f2b0478635070ddeeec4eeb948a20cc7d27ccf798bd41ae6fa85a11ce"
         ]
       },
       "config": {
@@ -241,19 +241,19 @@
         "DiffID": "sha256:2eeaba84a967db3e5e4595906bb07d4671b16cb29016db366bd98b98f22990de"
       },
       {
-        "Size": 7168,
-        "Digest": "sha256:3582de6c32a0a686508e616fb9800057aee8ed7cab72dd1c8f8f835bb04ad0b9",
-        "DiffID": "sha256:3ea313b98b052377de5817505ed507b99c2a5a000cd8c50f5d1b1e2de21cd4e3"
+        "Size": 22016,
+        "Digest": "sha256:33ec835753af5c0e35f8e38fd616cdf0a20b69cafc3da89b02b42942e4110787",
+        "DiffID": "sha256:be767ff25258faa32473f680f0876dea7306c7d462145808748f28032cc638b8"
       },
       {
         "Size": 14336,
-        "Digest": "sha256:dff169b06b35c0c70db6e3d275e1ba55f6fedffc04d37f18cbb6bafe6204e719",
-        "DiffID": "sha256:a1e34e9b709728c41c47bff99eda64a46934df99e3376f167f648e7c92a96b54"
+        "Digest": "sha256:3c51e0a087866fc266e312063f43edf67a6a9d34bac4fabaf04505962fb5367c",
+        "DiffID": "sha256:d36d167be714e42985d7635e5c3f36fa9e8418cf94ecfdf5318c0a015c62baa0"
       },
       {
-        "Size": 11379712,
-        "Digest": "sha256:5c7fb6a317f50e7ca3b940a4665a6d8f916473fc3b2875e9beebc72c2c5cded9",
-        "DiffID": "sha256:8f2a2bdb9a90317b567d9171f7b51175a581d7a670d6299d4abe84be2f3362a2"
+        "Size": 11394560,
+        "Digest": "sha256:a3fefaa8bf7005bac1376c8bb479e49cc9e69bdeb18cf6b070a457d53fc752e0",
+        "DiffID": "sha256:73c9bc9f2b0478635070ddeeec4eeb948a20cc7d27ccf798bd41ae6fa85a11ce"
       }
     ]
   },

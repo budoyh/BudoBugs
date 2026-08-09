@@ -230,7 +230,7 @@
     "version": "3.23.5"
   },
   "fixture_source": "src/budobugs/labs/fixture_app.py",
-  "fixture_source_sha256": "80bf3060fb4fdd262bcdc3ae3dcc84d90ff6f88ac2614322e146a1aa3953e392",
-  "image_manifest": "sha256:07adb2abfc0e639d5a55034099a9bdd24a670731662da9a2a28037ed55444b12",
+  "fixture_source_sha256": "bc66b17f1f793129158179f5e00c23a60147037f84ee57522c09c8942f6301b6",
+  "image_manifest": "sha256:ca7d11e68f90dfd7b02cea76e66be77d3d0b55c71edd83bf56c49945d86bf70c",
   "schema_version": 1
 }

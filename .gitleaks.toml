@@ -10,6 +10,7 @@ paths = [
   '''^\.budobugs/''',
   '''^\.venv/''',
   '''^node_modules/''',
+  '''^(engagements|findings|runs)/''',
   '''(?:^|/)__pycache__/''',
   '''^release/''',
   '''fixtures/.*''',

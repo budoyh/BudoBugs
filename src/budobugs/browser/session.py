@@ -6,6 +6,7 @@ import json
 import os
 from contextlib import suppress
 from pathlib import Path
+from urllib.parse import urljoin, urlsplit
 
 from playwright.async_api import BrowserContext, Page, Playwright, Route, async_playwright
 
@@ -17,14 +18,43 @@ from budobugs.models import Engagement
 from budobugs.models.base import utc_now
 
 
+def browser_artifact_paths(root: Path) -> list[str]:
+    """Return useful run artifacts while keeping browser credentials private."""
+
+    root = root.resolve()
+    result: list[str] = []
+    if not root.is_dir():
+        return result
+    for account_root in sorted(root.iterdir()):
+        if not account_root.is_dir() or account_root.is_symlink():
+            continue
+        for name in ("traffic.har", "trace.zip", "steps.jsonl", "console.json", "responses.json"):
+            path = account_root / name
+            if path.is_file() and not path.is_symlink():
+                result.append(str(path))
+        for pattern in ("dom/*.html", "screenshots/*.png", "screenshots/*.metadata.json", "downloads/*"):
+            result.extend(
+                str(path) for path in sorted(account_root.glob(pattern)) if path.is_file() and not path.is_symlink()
+            )
+    return list(dict.fromkeys(result))
+
+
 class BrowserSessionManager:
-    def __init__(self, root: Path, engagement: Engagement, *, headless: bool = True) -> None:
+    def __init__(
+        self,
+        root: Path,
+        engagement: Engagement,
+        *,
+        headless: bool = True,
+        account_headers: dict[str, dict[str, str]] | None = None,
+    ) -> None:
         self.root = root.resolve()
         self.engagement = engagement
         self.headless = headless
         self._playwright: Playwright | None = None
         self._contexts: dict[str, BrowserContext] = {}
         self._step_counts: dict[str, int] = {}
+        self._account_headers = account_headers or {}
 
     async def start(self) -> None:
         if self._playwright is None:
@@ -48,6 +78,9 @@ class BrowserSessionManager:
             ignore_https_errors=False,
         )
         await context.route("**/*", self._scope_route)
+        headers = self._account_headers.get(account_alias)
+        if headers:
+            await context.set_extra_http_headers(headers)
         await context.tracing.start(screenshots=True, snapshots=True, sources=False)
         self._contexts[account_alias] = context
         return context
@@ -101,6 +134,137 @@ class BrowserSessionManager:
         await self._capture_dom(account_alias, page, "post-login")
         self._log_step(account_alias, "interactive-login-complete", page.url)
         return page
+
+    async def explore(
+        self,
+        account_alias: str,
+        url: str,
+        *,
+        max_pages: int = 12,
+        create_harmless_object: bool = False,
+    ) -> dict[str, object]:
+        """Traverse scoped navigation and record DOM, JS, API, forms, and safe state changes."""
+
+        page = await self.open(account_alias, url)
+        console_rows: list[dict[str, str]] = []
+        responses: list[dict[str, object]] = []
+        page.on(
+            "console",
+            lambda message: console_rows.append(
+                {"type": message.type, "text": (redact_text(message.text) or "")[:1000]}
+            ),
+        )
+        page.on(
+            "response",
+            lambda response: responses.append({"url": redact_text(response.url) or "", "status": response.status}),
+        )
+        created: list[str] = []
+        if create_harmless_object and await page.locator("[data-budobugs-safe-create='true']").count():
+            marker = f"budobugs-{account_alias}-harmless"
+            field = page.locator("[data-budobugs-safe-create='true'] input").first
+            if await field.count():
+                await field.fill(marker)
+                async with page.expect_response(lambda item: target_allowed(self.engagement, item.url).allowed):
+                    await page.locator("[data-budobugs-safe-create='true'] button[type='submit']").first.click()
+                created.append(marker)
+                await self._capture_dom(account_alias, page, "created-harmless-object")
+                await self.screenshot(account_alias, page, "created-harmless-object")
+
+        visited: list[str] = [page.url]
+        discovered: list[str] = []
+        scripts: list[str] = []
+        forms: list[dict[str, object]] = []
+        queue: list[str] = []
+        blocked_words = {"logout", "delete", "remove", "payment", "purchase", "destroy", "unsubscribe"}
+        while len(visited) <= max_pages:
+            links = await page.locator("a[href]").evaluate_all(
+                "elements => elements.map(element => element.getAttribute('href')).filter(Boolean)"
+            )
+            script_values = await page.locator("script[src]").evaluate_all(
+                "elements => elements.map(element => element.src).filter(Boolean)"
+            )
+            form_values = await page.locator("form").evaluate_all(
+                "elements => elements.map(element => ({method: (element.method || 'GET').toUpperCase(), "
+                "action: element.action, names: Array.from(element.elements).map(item => item.name).filter(Boolean)}))"
+            )
+            scripts.extend(str(item) for item in script_values if isinstance(item, str))
+            forms.extend(item for item in form_values if isinstance(item, dict))
+            for value in links:
+                if not isinstance(value, str):
+                    continue
+                resolved = urljoin(page.url, value)
+                discovered.append(resolved)
+                parsed = urlsplit(resolved)
+                if (
+                    target_allowed(self.engagement, resolved).allowed
+                    and parsed.scheme in {"http", "https"}
+                    and not any(word in resolved.lower() for word in blocked_words)
+                    and resolved not in visited
+                    and resolved not in queue
+                ):
+                    queue.append(resolved)
+            if not queue or len(visited) >= max_pages:
+                break
+            next_url = queue.pop(0)
+            await page.goto(next_url, wait_until="domcontentloaded")
+            visited.append(page.url)
+            await self._capture_dom(account_alias, page, f"visit-{len(visited)}")
+            await self.screenshot(account_alias, page, f"visit-{len(visited)}")
+            self._log_step(account_alias, "explore", page.url)
+        state_path = safe_join(self.root, account_alias, "storage-state.json")
+        context = await self.context(account_alias)
+        await context.storage_state(path=state_path)
+        with suppress(OSError):
+            os.chmod(state_path, 0o600)
+        console_path = safe_join(self.root, account_alias, "console.json")
+        response_path = safe_join(self.root, account_alias, "responses.json")
+        atomic_write_json(console_path, console_rows)
+        atomic_write_json(response_path, responses)
+        await page.close()
+        return {
+            "account_alias": account_alias,
+            "visited_urls": list(dict.fromkeys(visited)),
+            "discovered_urls": list(dict.fromkeys(discovered)),
+            "scripts": list(dict.fromkeys(scripts)),
+            "forms": forms,
+            "responses": responses,
+            "created_harmless_objects": created,
+            "artifacts": [str(state_path), str(console_path), str(response_path)],
+        }
+
+    async def submit_form(
+        self,
+        account_alias: str,
+        url: str,
+        *,
+        fields: dict[str, str],
+        submit_selector: str = "button[type='submit']",
+    ) -> dict[str, object]:
+        """Execute one typed form action; callers must provide only self-owned test data."""
+
+        page = await self.open(account_alias, url)
+        for name, value in fields.items():
+            selector = f"[name={json.dumps(name)}]"
+            if not await page.locator(selector).count():
+                await page.close()
+                raise RuntimeError(f"form field is not present: {name}")
+            await page.locator(selector).first.fill(value)
+        async with page.expect_response(lambda item: target_allowed(self.engagement, item.url).allowed) as pending:
+            await page.locator(submit_selector).first.click()
+        response = await pending.value
+        await self._capture_dom(account_alias, page, "typed-form")
+        screenshot = await self.screenshot(account_alias, page, "typed-form")
+        result = {
+            "url": response.url,
+            "status": response.status,
+            "page_url": page.url,
+            "screenshot": str(screenshot),
+        }
+        await page.close()
+        return result
+
+    def artifact_paths(self) -> list[str]:
+        return browser_artifact_paths(self.root)
 
     async def _capture_dom(self, account_alias: str, page: Page, step: str) -> Path:
         sequence = self._step_counts.get(account_alias, 0) + 1

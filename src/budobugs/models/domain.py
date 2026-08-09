@@ -241,6 +241,12 @@ class Hypothesis(BudoModel):
     attacker_prerequisites: list[str] = Field(default_factory=list)
     proposed_single_variable_change: str
     expected_control: str
+    protocol: Literal["browser", "rest", "graphql", "websocket", "source"] = "rest"
+    parameter_location: Literal["path", "query", "header", "cookie", "body", "graphql", "none"] = "none"
+    validator_id: str | None = None
+    skill_name: str = "hypothesis-and-validation"
+    root_cause_hint: str = "unknown"
+    bounty_score: float = Field(default=0.0, ge=0)
     status: CandidateStatus = CandidateStatus.HYPOTHESIS
     priority: int = Field(default=50, ge=0, le=100)
 

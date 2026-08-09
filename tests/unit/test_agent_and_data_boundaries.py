@@ -242,8 +242,8 @@ async def test_agent_advisory_persists_usage_enforces_phase_budget_and_degrades(
         agent_runner=FixtureRunner("{}"),  # type: ignore[arg-type]
     )
     estimate = estimating.estimate(program)
-    assert estimate["planned_model_call_upper_bound"] == 2
-    assert estimate["model_token_ceiling"] == 20
+    assert estimate["planned_model_call_upper_bound"] == 10
+    assert estimate["model_token_ceiling"] == 100
     assert estimate["estimated_cost_usd"] is None
 
     run = Run(

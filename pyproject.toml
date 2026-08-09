@@ -110,15 +110,9 @@ branch = true
 source = ["budobugs"]
 omit = [
   "src/budobugs/cli/*",
-  "src/budobugs/agents/runner.py",
   "src/budobugs/labs/fixture_app.py",
   "src/budobugs/labs/manager.py",
   "src/budobugs/mcp/server.py",
-  "src/budobugs/proxy/burp.py",
-  "src/budobugs/proxy/caido.py",
-  "src/budobugs/proxy/har.py",
-  "src/budobugs/proxy/mcp.py",
-  "src/budobugs/proxy/zap.py",
   "src/budobugs/tools/doctor.py",
   "src/budobugs/tools/health.py",
   "src/budobugs/tools/installer.py",
