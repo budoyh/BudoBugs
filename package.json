@@ -16,7 +16,7 @@
     "security:secrets": "uv run python scripts/secret_scan.py --path ."
   },
   "dependencies": {
-    "@caido/sdk-client": "0.5.0",
+    "@caido/sdk-client": "0.5.1",
     "@openai/codex-sdk": "0.147.0"
   },
   "devDependencies": {

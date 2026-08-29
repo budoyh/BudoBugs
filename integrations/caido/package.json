@@ -6,6 +6,6 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@caido/sdk-client": "0.5.0"
+    "@caido/sdk-client": "0.5.1"
   }
 }
