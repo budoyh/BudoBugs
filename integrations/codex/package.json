@@ -6,6 +6,6 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@openai/codex-sdk": "0.147.0"
+    "@openai/codex-sdk": "0.152.1"
   }
 }
