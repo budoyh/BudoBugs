@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@caido/sdk-client": "0.5.0",
-    "@openai/codex-sdk": "0.147.0"
+    "@openai/codex-sdk": "0.154.0"
   },
   "devDependencies": {
     "@types/node": "24.13.3",
