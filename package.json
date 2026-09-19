@@ -20,7 +20,7 @@
     "@openai/codex-sdk": "0.147.0"
   },
   "devDependencies": {
-    "@types/node": "24.13.3",
+    "@types/node": "26.6.1",
     "markdownlint-cli2": "0.23.2",
     "tsx": "4.23.11",
     "typescript": "7.0.2"
