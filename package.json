@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "@types/node": "24.13.3",
-    "markdownlint-cli2": "0.23.2",
+    "markdownlint-cli2": "0.23.3",
     "tsx": "4.23.11",
     "typescript": "7.0.2"
   }
